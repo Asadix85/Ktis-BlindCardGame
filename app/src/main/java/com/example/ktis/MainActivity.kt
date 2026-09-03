@@ -1,18 +1,23 @@
 package com.example.ktis
 
-import android.app.Activity
 import android.os.Bundle
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import com.example.ktis.ui.screens.MainMenuScreen
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val textView = TextView(this)
-        textView.text = "Ktis"
-        textView.textSize = 32f
-
-        setContentView(textView)
+        setContent {
+            MaterialTheme {
+                Surface {
+                    MainMenuScreen()
+                }
+            }
+        }
     }
 }
