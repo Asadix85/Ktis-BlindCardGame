@@ -13,33 +13,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun MainMenuScreen(
-    onStart: () -> Unit
+fun PassPhoneScreen(
+    playerName: String,
+    onContinue: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
 
         Text(
-            text = "Ktis",
-            style = MaterialTheme.typography.displayMedium
+            text = "📱",
+            style = MaterialTheme.typography.displayLarge
         )
 
         Text(
-            text = "کارت بکش، شانس بیار!",
+            text = "گوشی را به $playerName بده",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Text(
+            text = "وقتی آماده شدی، ادامه بده.",
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = 12.dp)
         )
 
         Button(
-            onClick = onStart,
-            modifier = Modifier.padding(top = 32.dp)
+            onClick = onContinue,
+            modifier = Modifier.padding(top = 28.dp)
         ) {
-            Text("شروع بازی")
+            Text("ادامه")
         }
     }
 }

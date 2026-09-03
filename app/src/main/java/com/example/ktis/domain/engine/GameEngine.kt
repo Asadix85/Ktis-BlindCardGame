@@ -18,9 +18,7 @@ class GameEngine {
         require(playerNames.size >= 2)
         require(deckCount >= 1)
 
-        val names = playerNames.map {
-            it.trim()
-        }
+        val names = playerNames.map { it.trim() }
 
         require(names.none { it.isEmpty() })
         require(names.distinct().size == names.size)
@@ -56,7 +54,6 @@ class GameEngine {
             val card = deck.draw() ?: break
 
             players[index].drawPile.add(card)
-
             index = (index + 1) % players.size
         }
 
@@ -65,14 +62,13 @@ class GameEngine {
 
         players.forEach { player ->
             while (player.drawPile.size > minimum) {
-                player.drawPile.removeAt(
-                    player.drawPile.lastIndex
-                )
+                player.drawPile.removeAt(player.drawPile.lastIndex)
             }
         }
     }
 
     fun playCard(): Card {
+
         val current = requireState()
 
         check(!current.gameOver) {
@@ -81,9 +77,7 @@ class GameEngine {
 
         val player = current.currentPlayer
 
-        check(
-            player.id in current.roundPlayerIds
-        ) {
+        check(player.id in current.roundPlayerIds) {
             "Player is not active in this round."
         }
 
@@ -92,9 +86,7 @@ class GameEngine {
         }
 
         val card =
-            player.drawPile.removeAt(
-                player.drawPile.lastIndex
-            )
+            player.drawPile.removeAt(player.drawPile.lastIndex)
 
         current.centerPile.add(
             PlayedCard(
@@ -124,38 +116,41 @@ class GameEngine {
     }
 
     fun resolveRound(): Int? {
+
         val current = requireState()
 
-        if (current.centerPile.isEmpty()) {
-            return null
-        }
-
-        val playedIds =
-            current.centerPile
-                .map { it.playerId }
-                .toSet()
-
-        if (
-            !current.roundPlayerIds.all {
-                it in playedIds
-            }
-        ) {
-            return null
-        }
+        val activePlayers =
+            current.roundPlayerIds.toSet()
 
         val roundCards =
             current.centerPile.filter {
-                it.playerId in current.roundPlayerIds
+                it.playerId in activePlayers
             }
 
+        if (roundCards.size < activePlayers.size) {
+            return null
+        }
+
+        val latestCards =
+            activePlayers.mapNotNull { playerId ->
+                roundCards
+                    .lastOrNull {
+                        it.playerId == playerId
+                    }
+                    ?.let {
+                        playerId to it.card
+                    }
+            }
+
+        if (latestCards.size != activePlayers.size) {
+            return null
+        }
+
         val highest =
-            GameRules.highestPlayers(
-                roundCards.map {
-                    it.playerId to it.card
-                }
-            )
+            GameRules.highestPlayers(latestCards)
 
         if (highest.size > 1) {
+
             val firstTiedIndex =
                 current.players.indexOfFirst {
                     it.id == highest.first()
@@ -164,8 +159,7 @@ class GameEngine {
             state = current.copy(
                 tiedPlayerIds = highest,
                 roundPlayerIds = highest,
-                currentPlayerIndex =
-                    firstTiedIndex
+                currentPlayerIndex = firstTiedIndex
             )
 
             return null
@@ -199,8 +193,7 @@ class GameEngine {
                         winnerId
                     )
                 },
-            roundNumber =
-                current.roundNumber + 1,
+            roundNumber = current.roundNumber + 1,
             tiedPlayerIds = emptyList(),
             roundPlayerIds =
                 current.players.map { it.id },
@@ -216,19 +209,13 @@ class GameEngine {
 
         val current = state ?: return false
 
-        if (current.gameOver) {
+        if (current.gameOver) return false
+
+        if (current.currentPlayer.id != playerId) {
             return false
         }
 
-        if (
-            current.currentPlayer.id != playerId
-        ) {
-            return false
-        }
-
-        if (
-            playerId !in current.roundPlayerIds
-        ) {
+        if (playerId !in current.roundPlayerIds) {
             return false
         }
 
@@ -242,8 +229,7 @@ class GameEngine {
                 it.drawPile.size
             }
 
-        return maximum -
-                requester.drawPile.size >= 2
+        return maximum - requester.drawPile.size >= 2
     }
 
     fun requestCard(
@@ -327,6 +313,7 @@ class GameEngine {
                     current.players.size
 
         repeat(current.players.size) {
+
             if (
                 current.players[index]
                     .drawPile
@@ -353,6 +340,7 @@ class GameEngine {
         fun recommendedDeckCount(
             playerCount: Int
         ): Int {
+
             require(playerCount >= 2)
 
             return when (playerCount) {
