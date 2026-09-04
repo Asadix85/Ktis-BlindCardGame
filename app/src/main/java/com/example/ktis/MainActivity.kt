@@ -90,11 +90,19 @@ class MainActivity : ComponentActivity() {
                 val state = gameState
 
                 if (state != null) {
+
+                    val currentPlayerId =
+                        state.currentPlayer.id
+
+                    val canRequestCard =
+                        gameEngine.canRequestCard(currentPlayerId)
+
                     GameScreen(
                         state = state,
                         lastCard = lastPlayedCard,
                         revealed = revealed,
                         message = message,
+                        canRequestCard = canRequestCard,
 
                         onDrawCard = {
                             if (
@@ -120,10 +128,12 @@ class MainActivity : ComponentActivity() {
                                     gameState = newState
 
                                     lifecycleScope.launch {
+
                                         delay(700)
 
                                         revealed = true
-                                        message = "کارت‌ها رو شدند! 🃏"
+                                        message =
+                                            "کارت‌ها رو شدند! 🃏"
 
                                         delay(1200)
 
@@ -131,6 +141,7 @@ class MainActivity : ComponentActivity() {
                                             gameEngine.resolveRound()
 
                                         if (winner != null) {
+
                                             val resolvedState =
                                                 gameEngine.getState()
 
@@ -152,6 +163,7 @@ class MainActivity : ComponentActivity() {
                                             gameEngine.getState()
 
                                         if (updatedState.gameOver) {
+
                                             finalResult =
                                                 GameResult.calculate(
                                                     updatedState
@@ -159,9 +171,11 @@ class MainActivity : ComponentActivity() {
 
                                             currentScreen =
                                                 Screen.RESULT
+
                                         } else if (
                                             updatedState.centerPile.isEmpty()
                                         ) {
+
                                             revealed = false
                                             lastPlayedCard = null
                                             currentScreen =
@@ -204,17 +218,22 @@ class MainActivity : ComponentActivity() {
                 val result = finalResult
 
                 if (result != null) {
+
                     val names =
                         gameState?.players
-                            ?.associate { it.id to it.name }
+                            ?.associate {
+                                it.id to it.name
+                            }
                             ?: emptyMap()
 
                     ResultScreen(
                         result = result,
                         playerNames = names,
+
                         onNewGame = {
                             currentScreen = Screen.SETUP
                         },
+
                         onMenu = {
                             currentScreen = Screen.MENU
                         }

@@ -3,6 +3,7 @@ package com.example.ktis.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +46,7 @@ fun GameScreen(
     lastCard: GameCard?,
     revealed: Boolean,
     message: String,
+    canRequestCard: Boolean,
     onDrawCard: () -> Unit,
     onRequestCard: () -> Unit,
     onBack: () -> Unit
@@ -55,6 +60,7 @@ fun GameScreen(
             .padding(12.dp)
     ) {
 
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -63,34 +69,50 @@ fun GameScreen(
             Column {
                 Text(
                     text = "دور ${state.roundNumber}",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.LightGray
                 )
 
                 Text(
-                    text = "نوبت ${currentPlayer.name}",
+                    text = currentPlayer.name,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Gold
+                    color = Gold,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
             Card(
+                shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = TableGreenLight
                 )
             ) {
-                Text(
-                    text = "وسط: ${state.centerPile.size}",
+                Column(
                     modifier = Modifier.padding(
-                        horizontal = 14.dp,
-                        vertical = 8.dp
+                        horizontal = 12.dp,
+                        vertical = 7.dp
                     ),
-                    fontSize = 14.sp
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "وسط",
+                        fontSize = 11.sp,
+                        color = Color.LightGray
+                    )
+
+                    Text(
+                        text = "${state.centerPile.size}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Gold
+                    )
+                }
             }
         }
 
         Spacer(Modifier.height(12.dp))
 
+        // Players
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -104,14 +126,20 @@ fun GameScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(14.dp))
 
+        // Center table
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(TableGreenLight),
+                .background(TableGreenLight)
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(24.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (lastCard != null) {
@@ -129,22 +157,27 @@ fun GameScreen(
                         fontSize = 64.sp
                     )
 
+                    Spacer(Modifier.height(8.dp))
+
                     Text(
                         text = "کارت وسط",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.LightGray
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
 
+        // Message
         AnimatedVisibility(
-            visible = revealed && message.isNotEmpty(),
+            visible = message.isNotEmpty(),
             enter = fadeIn()
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = CardBack
                 )
@@ -153,55 +186,61 @@ fun GameScreen(
                     text = message,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     textAlign = TextAlign.Center,
-                    color = Gold
-                )
-            }
-        }
-
-        if (!revealed && message.isNotEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = CardBack
-                )
-            ) {
-                Text(
-                    text = message,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    textAlign = TextAlign.Center
+                    color = if (revealed) Gold else Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = if (revealed) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    }
                 )
             }
         }
 
         Spacer(Modifier.height(10.dp))
 
+        // Main actions
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
                 onClick = onDrawCard,
-                enabled = currentPlayer.remainingCards > 0,
-                modifier = Modifier.weight(1f),
+                enabled =
+                    !revealed &&
+                            currentPlayer.remainingCards > 0,
+                modifier = Modifier
+                    .weight(1.2f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Gold
+                    containerColor = Gold,
+                    contentColor = Color.Black
                 )
             ) {
                 Text(
                     text = "🃏 کارت بکش",
-                    color = androidx.compose.ui.graphics.Color.Black
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
             OutlinedButton(
                 onClick = onRequestCard,
-                modifier = Modifier.weight(1f)
+                enabled =
+                    !revealed &&
+                            canRequestCard,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text("📨 درخواست کارت")
+                Text(
+                    text = "📨 درخواست",
+                    fontSize = 13.sp
+                )
             }
         }
 
@@ -209,7 +248,10 @@ fun GameScreen(
 
         OutlinedButton(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text("خروج از بازی")
         }
