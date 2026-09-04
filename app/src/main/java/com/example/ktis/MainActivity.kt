@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.ktis.domain.engine.GameEngine
 import com.example.ktis.domain.engine.GameResult
 import com.example.ktis.domain.model.FinalResult
+import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.MainMenuScreen
 import com.example.ktis.ui.screens.PassPhoneScreen
@@ -39,6 +40,23 @@ class MainActivity : ComponentActivity() {
 
     private var highlightedWinnerId by
     mutableStateOf<Int?>(null)
+
+    /*
+     * Snapshot of the cards that have been played
+     * during the current round.
+     *
+     * GameEngine clears centerPile when the round
+     * is resolved, so we keep a separate copy for UI.
+     */
+    private var visibleCenterPile by
+    mutableStateOf<List<PlayedCard>>(emptyList())
+
+    /*
+     * Controls whether cards currently shown on the
+     * table should play the throw animation.
+     */
+    private var animateCenterCards by
+    mutableStateOf(true)
 
     private var finalResult by
     mutableStateOf<FinalResult?>(null)
@@ -90,7 +108,14 @@ class MainActivity : ComponentActivity() {
                         highlightedWinnerId =
                             null
 
-                        finalResult = null
+                        visibleCenterPile =
+                            emptyList()
+
+                        animateCenterCards =
+                            true
+
+                        finalResult =
+                            null
 
                         currentScreen =
                             Screen.PASS_PHONE
@@ -111,10 +136,23 @@ class MainActivity : ComponentActivity() {
                 if (state != null) {
 
                     PassPhoneScreen(
+
                         playerName =
                             state.currentPlayer.name,
 
+                        centerPile =
+                            visibleCenterPile,
+
                         onContinue = {
+
+                            /*
+                             * The cards are already on the table.
+                             * Do not animate them again when the next
+                             * player receives the phone.
+                             */
+                            animateCenterCards =
+                                false
+
                             currentScreen =
                                 Screen.GAME
                         }
@@ -141,7 +179,20 @@ class MainActivity : ComponentActivity() {
 
                         state = state,
 
-                        message = message,
+                        /*
+                         * Use our snapshot instead of state.centerPile.
+                         *
+                         * This is important because GameEngine clears
+                         * centerPile after resolving the round.
+                         */
+                        visibleCenterPile =
+                            visibleCenterPile,
+
+                        animateCenterCards =
+                            animateCenterCards,
+
+                        message =
+                            message,
 
                         canRequestCard =
                             canRequest,
@@ -164,10 +215,33 @@ class MainActivity : ComponentActivity() {
                                 return@GameScreen
                             }
 
+                            /*
+                             * Play the card.
+                             */
                             gameEngine.playCard()
 
+                            /*
+                             * Update game state.
+                             */
                             gameState =
                                 gameEngine.getState()
+
+                            /*
+                             * IMPORTANT:
+                             * Save a snapshot before resolveRound()
+                             * can clear the engine's centerPile.
+                             */
+                            visibleCenterPile =
+                                gameEngine
+                                    .getState()
+                                    .centerPile
+                                    .toList()
+
+                            /*
+                             * A newly played card should animate.
+                             */
+                            animateCenterCards =
+                                true
 
                             val afterPlay =
                                 gameEngine.getState()
@@ -175,6 +249,11 @@ class MainActivity : ComponentActivity() {
                             message =
                                 "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
 
+                            /*
+                             * If this was the last card of the round,
+                             * stay on the game screen long enough to show
+                             * the played cards before resolving.
+                             */
                             if (
                                 gameEngine
                                     .isRoundComplete()
@@ -182,7 +261,18 @@ class MainActivity : ComponentActivity() {
 
                                 lifecycleScope.launch {
 
+                                    /*
+                                     * Give the UI time to display the
+                                     * last played card.
+                                     */
                                     delay(900)
+
+                                    /*
+                                     * Stop the throw animation.
+                                     * Cards are now sitting on the table.
+                                     */
+                                    animateCenterCards =
+                                        false
 
                                     val winner =
                                         gameEngine
@@ -209,13 +299,33 @@ class MainActivity : ComponentActivity() {
                                                             winner
                                                 }
 
+                                        /*
+                                         * The snapshot still contains
+                                         * all cards from the round,
+                                         * even though GameEngine has
+                                         * already cleared its centerPile.
+                                         */
                                         message =
                                             "${winnerPlayer.name} این دست رو برد! 🏆"
 
+                                        /*
+                                         * Keep the cards visible so the
+                                         * players can actually see what
+                                         * the winner had.
+                                         */
                                         delay(1500)
 
                                         highlightedWinnerId =
                                             null
+
+                                        /*
+                                         * Now clear the visual table.
+                                         */
+                                        visibleCenterPile =
+                                            emptyList()
+
+                                        animateCenterCards =
+                                            true
 
                                         val updated =
                                             gameEngine
@@ -246,6 +356,9 @@ class MainActivity : ComponentActivity() {
 
                                     } else {
 
+                                        /*
+                                         * Tie.
+                                         */
                                         val tieState =
                                             gameEngine
                                                 .getState()
@@ -256,9 +369,19 @@ class MainActivity : ComponentActivity() {
                                         gameState =
                                             tieState
 
+                                        /*
+                                         * Keep the played cards visible
+                                         * while showing the tie message.
+                                         */
                                         delay(1000)
 
                                         message = ""
+
+                                        visibleCenterPile =
+                                            emptyList()
+
+                                        animateCenterCards =
+                                            true
 
                                         currentScreen =
                                             Screen.PASS_PHONE
@@ -267,6 +390,12 @@ class MainActivity : ComponentActivity() {
 
                             } else {
 
+                                /*
+                                 * Not the last player.
+                                 *
+                                 * Save the card in visibleCenterPile
+                                 * and then pass the phone.
+                                 */
                                 currentScreen =
                                     Screen.PASS_PHONE
                             }
@@ -297,6 +426,7 @@ class MainActivity : ComponentActivity() {
                         },
 
                         onBack = {
+
                             currentScreen =
                                 Screen.MENU
                         }
@@ -326,11 +456,13 @@ class MainActivity : ComponentActivity() {
                         playerNames = names,
 
                         onNewGame = {
+
                             currentScreen =
                                 Screen.SETUP
                         },
 
                         onMenu = {
+
                             currentScreen =
                                 Screen.MENU
                         }

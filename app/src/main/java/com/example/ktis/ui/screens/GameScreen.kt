@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ktis.domain.model.GameState
+import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.ui.components.CardView
 import com.example.ktis.ui.components.PlayerView
 import com.example.ktis.ui.theme.CardBack
@@ -42,6 +43,8 @@ import com.example.ktis.ui.theme.TableGreenLight
 @Composable
 fun GameScreen(
     state: GameState,
+    visibleCenterPile: List<PlayedCard>,
+    animateCenterCards: Boolean,
     message: String,
     canRequestCard: Boolean,
     highlightedWinnerId: Int?,
@@ -49,6 +52,7 @@ fun GameScreen(
     onRequestCard: () -> Unit,
     onBack: () -> Unit
 ) {
+
     val currentPlayer =
         state.currentPlayer
 
@@ -61,6 +65,9 @@ fun GameScreen(
             .padding(12.dp)
     ) {
 
+        /*
+         * Header
+         */
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement =
@@ -70,19 +77,27 @@ fun GameScreen(
         ) {
 
             Column {
+
                 Text(
-                    text = "دور ${state.roundNumber}",
+                    text =
+                        "دور ${state.roundNumber}",
                     style =
-                        MaterialTheme.typography.titleMedium,
-                    color = Color.LightGray
+                        MaterialTheme.typography
+                            .titleMedium,
+                    color =
+                        Color.LightGray
                 )
 
                 Text(
-                    text = currentPlayer.name,
+                    text =
+                        currentPlayer.name,
                     style =
-                        MaterialTheme.typography.headlineSmall,
-                    color = Gold,
-                    fontWeight = FontWeight.Bold
+                        MaterialTheme.typography
+                            .headlineSmall,
+                    color =
+                        Gold,
+                    fontWeight =
+                        FontWeight.Bold
                 )
             }
 
@@ -95,11 +110,13 @@ fun GameScreen(
                             TableGreenLight
                     )
             ) {
+
                 Column(
-                    modifier = Modifier.padding(
-                        horizontal = 12.dp,
-                        vertical = 7.dp
-                    ),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 7.dp
+                        ),
                     horizontalAlignment =
                         Alignment.CenterHorizontally
                 ) {
@@ -107,43 +124,65 @@ fun GameScreen(
                     Text(
                         text = "وسط",
                         fontSize = 11.sp,
-                        color = Color.LightGray
+                        color =
+                            Color.LightGray
                     )
 
                     Text(
                         text =
-                            "${state.centerPile.size}",
+                            "${visibleCenterPile.size}",
                         fontSize = 18.sp,
                         fontWeight =
                             FontWeight.Bold,
-                        color = Gold
+                        color =
+                            Gold
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(
+            Modifier.height(12.dp)
+        )
 
+        /*
+         * Players
+         */
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth(),
             horizontalArrangement =
                 Arrangement.spacedBy(6.dp)
         ) {
+
             state.players.forEach { player ->
 
                 PlayerView(
                     player = player,
+
                     isCurrent =
                         player.id ==
                                 currentPlayer.id,
+
                     modifier =
                         Modifier.weight(1f)
                 )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(
+            Modifier.height(14.dp)
+        )
 
+        /*
+         * TABLE
+         *
+         * When there are no cards:
+         * absolutely nothing is shown here.
+         *
+         * No 🎴
+         * No "کارت‌ها روی زمین"
+         */
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -162,56 +201,33 @@ fun GameScreen(
                         RoundedCornerShape(24.dp)
                 )
                 .padding(10.dp),
+
             contentAlignment =
                 Alignment.Center
         ) {
 
-            if (state.centerPile.isEmpty()) {
-
-                Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
-
-                    Text(
-                        text = "🎴",
-                        fontSize = 64.sp
-                    )
-
-                    Spacer(
-                        Modifier.height(8.dp)
-                    )
-
-                    Text(
-                        text = "کارت‌ها روی زمین",
-                        style =
-                            MaterialTheme.typography
-                                .titleMedium,
-                        color = Color.LightGray
-                    )
-                }
-
-            } else {
+            if (visibleCenterPile.isNotEmpty()) {
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(
-                            rememberScrollState()
-                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(
+                                rememberScrollState()
+                            ),
+
                     horizontalArrangement =
                         Arrangement.spacedBy(8.dp),
+
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
 
-                    state.centerPile.forEachIndexed {
-                            index,
-                            playedCard ->
+                    visibleCenterPile.forEach { playedCard ->
 
                         val direction =
-                            when (playedCard.playerId %
-                                    3
+                            when (
+                                playedCard.playerId % 3
                             ) {
                                 0 -> -1f
                                 1 -> 1f
@@ -219,6 +235,7 @@ fun GameScreen(
                             }
 
                         CardView(
+
                             card =
                                 playedCard.card,
 
@@ -229,6 +246,9 @@ fun GameScreen(
                             throwDirection =
                                 direction,
 
+                            animateThrow =
+                                animateCenterCards,
+
                             modifier =
                                 Modifier.width(78.dp)
                         )
@@ -237,19 +257,27 @@ fun GameScreen(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(
+            Modifier.height(10.dp)
+        )
 
+        /*
+         * Message
+         */
         AnimatedVisibility(
             visible =
                 message.isNotEmpty(),
-            enter = fadeIn()
+            enter =
+                fadeIn()
         ) {
 
             Card(
                 modifier =
                     Modifier.fillMaxWidth(),
+
                 shape =
                     RoundedCornerShape(14.dp),
+
                 colors =
                     CardDefaults.cardColors(
                         containerColor =
@@ -259,12 +287,15 @@ fun GameScreen(
 
                 Text(
                     text = message,
+
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
+
                     textAlign =
                         TextAlign.Center,
+
                     color =
                         if (
                             highlightedWinnerId != null
@@ -273,7 +304,10 @@ fun GameScreen(
                         } else {
                             Color.White
                         },
-                    fontSize = 14.sp,
+
+                    fontSize =
+                        14.sp,
+
                     fontWeight =
                         if (
                             highlightedWinnerId != null
@@ -286,17 +320,25 @@ fun GameScreen(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(
+            Modifier.height(10.dp)
+        )
 
+        /*
+         * Game buttons
+         */
         Row(
             modifier =
                 Modifier.fillMaxWidth(),
+
             horizontalArrangement =
                 Arrangement.spacedBy(10.dp)
         ) {
 
             Button(
-                onClick = onDrawCard,
+                onClick =
+                    onDrawCard,
+
                 enabled =
                     currentPlayer.remainingCards > 0 &&
                             highlightedWinnerId == null,
@@ -311,20 +353,30 @@ fun GameScreen(
 
                 colors =
                     ButtonDefaults.buttonColors(
-                        containerColor = Gold,
-                        contentColor = Color.Black
+                        containerColor =
+                            Gold,
+                        contentColor =
+                            Color.Black
                     )
             ) {
+
                 Text(
-                    text = "🃏 کارت بکش",
-                    fontSize = 15.sp,
+                    text =
+                        "🃏 کارت بکش",
+
+                    fontSize =
+                        15.sp,
+
                     fontWeight =
                         FontWeight.Bold
                 )
             }
 
             OutlinedButton(
-                onClick = onRequestCard,
+
+                onClick =
+                    onRequestCard,
+
                 enabled =
                     canRequestCard &&
                             highlightedWinnerId == null,
@@ -337,25 +389,38 @@ fun GameScreen(
                 shape =
                     RoundedCornerShape(14.dp)
             ) {
+
                 Text(
-                    text = "📨 درخواست",
-                    fontSize = 13.sp
+                    text =
+                        "📨 درخواست",
+
+                    fontSize =
+                        13.sp
                 )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(
+            Modifier.height(8.dp)
+        )
 
         OutlinedButton(
-            onClick = onBack,
+
+            onClick =
+                onBack,
+
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .height(44.dp),
+
             shape =
                 RoundedCornerShape(12.dp)
         ) {
-            Text("خروج از بازی")
+
+            Text(
+                "خروج از بازی"
+            )
         }
     }
 }
