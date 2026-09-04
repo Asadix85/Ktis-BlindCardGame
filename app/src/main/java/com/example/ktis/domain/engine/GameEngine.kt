@@ -14,7 +14,6 @@ class GameEngine {
         playerNames: List<String>,
         deckCount: Int = recommendedDeckCount(playerNames.size)
     ): GameState {
-
         require(playerNames.size >= 2)
         require(deckCount >= 1)
 
@@ -27,10 +26,7 @@ class GameEngine {
         deck.shuffle()
 
         val players = names.mapIndexed { index, name ->
-            Player(
-                id = index,
-                name = name
-            )
+            Player(id = index, name = name)
         }
 
         dealCards(deck, players)
@@ -38,7 +34,8 @@ class GameEngine {
         state = GameState(
             players = players,
             currentPlayerIndex = 0,
-            roundPlayerIds = players.map { it.id }
+            roundPlayerIds = players.map { it.id },
+            roundPlayedPlayerIds = emptyList()
         )
 
         return state!!
@@ -54,6 +51,7 @@ class GameEngine {
             val card = deck.draw() ?: break
 
             players[index].drawPile.add(card)
+
             index = (index + 1) % players.size
         }
 
@@ -62,13 +60,14 @@ class GameEngine {
 
         players.forEach { player ->
             while (player.drawPile.size > minimum) {
-                player.drawPile.removeAt(player.drawPile.lastIndex)
+                player.drawPile.removeAt(
+                    player.drawPile.lastIndex
+                )
             }
         }
     }
 
     fun playCard(): Card {
-
         val current = requireState()
 
         check(!current.gameOver) {
@@ -81,12 +80,18 @@ class GameEngine {
             "Player is not active in this round."
         }
 
+        check(player.id !in current.roundPlayedPlayerIds) {
+            "Player already played this round."
+        }
+
         check(player.drawPile.isNotEmpty()) {
             "Player has no cards."
         }
 
         val card =
-            player.drawPile.removeAt(player.drawPile.lastIndex)
+            player.drawPile.removeAt(
+                player.drawPile.lastIndex
+            )
 
         current.centerPile.add(
             PlayedCard(
@@ -95,45 +100,55 @@ class GameEngine {
             )
         )
 
-        val playedIds =
-            current.centerPile
-                .map { it.playerId }
-                .toSet()
+        val playedPlayers =
+            current.roundPlayedPlayerIds +
+                    player.id
 
         val roundComplete =
             current.roundPlayerIds.all {
-                it in playedIds
+                it in playedPlayers
             }
 
-        if (!roundComplete) {
+        if (roundComplete) {
+            state = current.copy(
+                roundPlayedPlayerIds = playedPlayers
+            )
+        } else {
             state = current.copy(
                 currentPlayerIndex =
-                    nextActivePlayerIndex(current)
+                    nextActivePlayerIndex(current),
+                roundPlayedPlayerIds =
+                    playedPlayers
             )
         }
 
         return card
     }
 
-    fun resolveRound(): Int? {
+    fun isRoundComplete(): Boolean {
+        val current = requireState()
 
+        return current.roundPlayerIds.all {
+            it in current.roundPlayedPlayerIds
+        }
+    }
+
+    fun resolveRound(): Int? {
         val current = requireState()
 
         val activePlayers =
             current.roundPlayerIds.toSet()
 
-        val roundCards =
-            current.centerPile.filter {
-                it.playerId in activePlayers
+        if (!activePlayers.all {
+                it in current.roundPlayedPlayerIds
             }
-
-        if (roundCards.size < activePlayers.size) {
+        ) {
             return null
         }
 
         val latestCards =
             activePlayers.mapNotNull { playerId ->
-                roundCards
+                current.centerPile
                     .lastOrNull {
                         it.playerId == playerId
                     }
@@ -159,13 +174,15 @@ class GameEngine {
             state = current.copy(
                 tiedPlayerIds = highest,
                 roundPlayerIds = highest,
+                roundPlayedPlayerIds = emptyList(),
                 currentPlayerIndex = firstTiedIndex
             )
 
             return null
         }
 
-        val winnerId = highest.first()
+        val winnerId =
+            highest.first()
 
         val winner =
             current.players.first {
@@ -193,11 +210,21 @@ class GameEngine {
                         winnerId
                     )
                 },
-            roundNumber = current.roundNumber + 1,
-            tiedPlayerIds = emptyList(),
+
+            roundNumber =
+                current.roundNumber + 1,
+
+            tiedPlayerIds =
+                emptyList(),
+
             roundPlayerIds =
                 current.players.map { it.id },
-            gameOver = gameOver
+
+            roundPlayedPlayerIds =
+                emptyList(),
+
+            gameOver =
+                gameOver
         )
 
         return winnerId
@@ -206,8 +233,8 @@ class GameEngine {
     fun canRequestCard(
         playerId: Int
     ): Boolean {
-
-        val current = state ?: return false
+        val current =
+            state ?: return false
 
         if (current.gameOver) return false
 
@@ -216,6 +243,10 @@ class GameEngine {
         }
 
         if (playerId !in current.roundPlayerIds) {
+            return false
+        }
+
+        if (playerId in current.roundPlayedPlayerIds) {
             return false
         }
 
@@ -229,18 +260,19 @@ class GameEngine {
                 it.drawPile.size
             }
 
-        return maximum - requester.drawPile.size >= 2
+        return maximum -
+                requester.drawPile.size >= 2
     }
 
     fun requestCard(
         playerId: Int
     ): Boolean {
-
         if (!canRequestCard(playerId)) {
             return false
         }
 
-        val current = requireState()
+        val current =
+            requireState()
 
         val requester =
             current.players.first {
@@ -262,7 +294,8 @@ class GameEngine {
             return false
         }
 
-        val donor = donors.random()
+        val donor =
+            donors.random()
 
         val card =
             donor.drawPile.removeAt(
@@ -281,14 +314,13 @@ class GameEngine {
     private fun nextActivePlayerIndex(
         current: GameState
     ): Int {
-
         var index =
             (current.currentPlayerIndex + 1) %
                     current.players.size
 
         while (
-            current.players[index].id
-            !in current.roundPlayerIds
+            current.players[index].id !in
+            current.roundPlayerIds
         ) {
             index =
                 (index + 1) %
@@ -302,7 +334,6 @@ class GameEngine {
         current: GameState,
         playerId: Int
     ): Int {
-
         val winnerIndex =
             current.players.indexOfFirst {
                 it.id == playerId
@@ -340,7 +371,6 @@ class GameEngine {
         fun recommendedDeckCount(
             playerCount: Int
         ): Int {
-
             require(playerCount >= 2)
 
             return when (playerCount) {

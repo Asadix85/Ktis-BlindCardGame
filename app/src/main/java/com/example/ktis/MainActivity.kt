@@ -11,7 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.example.ktis.domain.engine.GameEngine
 import com.example.ktis.domain.engine.GameResult
-import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.FinalResult
 import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.MainMenuScreen
@@ -24,17 +23,32 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val gameEngine = GameEngine()
+    private val gameEngine =
+        GameEngine()
 
-    private var currentScreen by mutableStateOf(Screen.MENU)
-    private var gameState by mutableStateOf(gameEngineStateOrNull())
-    private var lastPlayedCard by mutableStateOf<Card?>(null)
-    private var revealed by mutableStateOf(false)
-    private var message by mutableStateOf("")
-    private var finalResult by mutableStateOf<FinalResult?>(null)
+    private var currentScreen by
+    mutableStateOf(Screen.MENU)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private var gameState by
+    mutableStateOf(
+        gameEngineStateOrNull()
+    )
+
+    private var message by
+    mutableStateOf("")
+
+    private var highlightedWinnerId by
+    mutableStateOf<Int?>(null)
+
+    private var finalResult by
+    mutableStateOf<FinalResult?>(null)
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+        super.onCreate(
+            savedInstanceState
+        )
 
         setContent {
             KtisTheme {
@@ -47,154 +61,229 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun AppContent() {
+
         when (currentScreen) {
 
             Screen.MENU -> {
+
                 MainMenuScreen(
                     onStart = {
-                        currentScreen = Screen.SETUP
+                        currentScreen =
+                            Screen.SETUP
                     }
                 )
             }
 
             Screen.SETUP -> {
+
                 SetupGameScreen(
+
                     onStartGame = { names ->
-                        gameState = gameEngine.startGame(names)
-                        lastPlayedCard = null
-                        revealed = false
+
+                        gameState =
+                            gameEngine.startGame(
+                                names
+                            )
+
                         message = ""
+
+                        highlightedWinnerId =
+                            null
+
                         finalResult = null
-                        currentScreen = Screen.PASS_PHONE
+
+                        currentScreen =
+                            Screen.PASS_PHONE
                     },
+
                     onBack = {
-                        currentScreen = Screen.MENU
+                        currentScreen =
+                            Screen.MENU
                     }
                 )
             }
 
             Screen.PASS_PHONE -> {
-                val state = gameState
+
+                val state =
+                    gameState
 
                 if (state != null) {
+
                     PassPhoneScreen(
-                        playerName = state.currentPlayer.name,
+                        playerName =
+                            state.currentPlayer.name,
+
                         onContinue = {
-                            currentScreen = Screen.GAME
+                            currentScreen =
+                                Screen.GAME
                         }
                     )
                 }
             }
 
             Screen.GAME -> {
-                val state = gameState
+
+                val state =
+                    gameState
 
                 if (state != null) {
 
-                    val currentPlayerId =
+                    val playerId =
                         state.currentPlayer.id
 
-                    val canRequestCard =
-                        gameEngine.canRequestCard(currentPlayerId)
+                    val canRequest =
+                        gameEngine.canRequestCard(
+                            playerId
+                        )
 
                     GameScreen(
+
                         state = state,
-                        lastCard = lastPlayedCard,
-                        revealed = revealed,
+
                         message = message,
-                        canRequestCard = canRequestCard,
+
+                        canRequestCard =
+                            canRequest,
+
+                        highlightedWinnerId =
+                            highlightedWinnerId,
 
                         onDrawCard = {
+
                             if (
-                                !revealed &&
-                                state.currentPlayer.remainingCards > 0
+                                highlightedWinnerId != null
                             ) {
-                                revealed = false
-                                message = ""
+                                return@GameScreen
+                            }
 
-                                lastPlayedCard =
-                                    gameEngine.playCard()
+                            if (
+                                state.currentPlayer
+                                    .remainingCards <= 0
+                            ) {
+                                return@GameScreen
+                            }
 
-                                gameState =
-                                    gameEngine.getState()
+                            gameEngine.playCard()
 
-                                val newState =
-                                    gameEngine.getState()
+                            gameState =
+                                gameEngine.getState()
 
-                                if (
-                                    newState.centerPile.size >=
-                                    newState.roundPlayerIds.size
-                                ) {
-                                    gameState = newState
+                            val afterPlay =
+                                gameEngine.getState()
 
-                                    lifecycleScope.launch {
+                            message =
+                                "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
 
-                                        delay(700)
+                            if (
+                                gameEngine
+                                    .isRoundComplete()
+                            ) {
 
-                                        revealed = true
-                                        message =
-                                            "کارت‌ها رو شدند! 🃏"
+                                lifecycleScope.launch {
 
-                                        delay(1200)
+                                    delay(900)
 
-                                        val winner =
-                                            gameEngine.resolveRound()
+                                    val winner =
+                                        gameEngine
+                                            .resolveRound()
 
-                                        if (winner != null) {
+                                    val resolved =
+                                        gameEngine
+                                            .getState()
 
-                                            val resolvedState =
-                                                gameEngine.getState()
+                                    gameState =
+                                        resolved
 
-                                            val winnerPlayer =
-                                                resolvedState.players.first {
-                                                    it.id == winner
+                                    if (
+                                        winner != null
+                                    ) {
+
+                                        highlightedWinnerId =
+                                            winner
+
+                                        val winnerPlayer =
+                                            resolved.players
+                                                .first {
+                                                    it.id ==
+                                                            winner
                                                 }
 
-                                            message =
-                                                "${winnerPlayer.name} برنده این دور شد! 🏆"
+                                        message =
+                                            "${winnerPlayer.name} این دست رو برد! 🏆"
 
-                                            gameState =
-                                                resolvedState
+                                        delay(1500)
 
-                                            delay(700)
-                                        }
+                                        highlightedWinnerId =
+                                            null
 
-                                        val updatedState =
-                                            gameEngine.getState()
+                                        val updated =
+                                            gameEngine
+                                                .getState()
 
-                                        if (updatedState.gameOver) {
+                                        if (
+                                            updated.gameOver
+                                        ) {
 
                                             finalResult =
                                                 GameResult.calculate(
-                                                    updatedState
+                                                    updated
                                                 )
+
+                                            gameState =
+                                                updated
 
                                             currentScreen =
                                                 Screen.RESULT
 
-                                        } else if (
-                                            updatedState.centerPile.isEmpty()
-                                        ) {
+                                        } else {
 
-                                            revealed = false
-                                            lastPlayedCard = null
+                                            message = ""
+
                                             currentScreen =
                                                 Screen.PASS_PHONE
                                         }
+
+                                    } else {
+
+                                        val tieState =
+                                            gameEngine
+                                                .getState()
+
+                                        message =
+                                            "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
+
+                                        gameState =
+                                            tieState
+
+                                        delay(1000)
+
+                                        message = ""
+
+                                        currentScreen =
+                                            Screen.PASS_PHONE
                                     }
                                 }
+
+                            } else {
+
+                                currentScreen =
+                                    Screen.PASS_PHONE
                             }
                         },
 
                         onRequestCard = {
-                            val playerId =
+
+                            val currentId =
                                 gameEngine
                                     .getState()
                                     .currentPlayer
                                     .id
 
                             val success =
-                                gameEngine.requestCard(playerId)
+                                gameEngine.requestCard(
+                                    currentId
+                                )
 
                             gameState =
                                 gameEngine.getState()
@@ -208,34 +297,42 @@ class MainActivity : ComponentActivity() {
                         },
 
                         onBack = {
-                            currentScreen = Screen.MENU
+                            currentScreen =
+                                Screen.MENU
                         }
                     )
                 }
             }
 
             Screen.RESULT -> {
-                val result = finalResult
+
+                val result =
+                    finalResult
 
                 if (result != null) {
 
                     val names =
-                        gameState?.players
+                        gameState
+                            ?.players
                             ?.associate {
                                 it.id to it.name
                             }
                             ?: emptyMap()
 
                     ResultScreen(
+
                         result = result,
+
                         playerNames = names,
 
                         onNewGame = {
-                            currentScreen = Screen.SETUP
+                            currentScreen =
+                                Screen.SETUP
                         },
 
                         onMenu = {
-                            currentScreen = Screen.MENU
+                            currentScreen =
+                                Screen.MENU
                         }
                     )
                 }

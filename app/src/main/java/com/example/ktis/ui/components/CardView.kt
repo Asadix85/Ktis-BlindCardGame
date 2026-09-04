@@ -2,7 +2,6 @@ package com.example.ktis.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -31,187 +30,171 @@ import com.example.ktis.R
 import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.Rank
 import com.example.ktis.domain.model.Suit
-import com.example.ktis.ui.theme.CardBack
 import com.example.ktis.ui.theme.CardWhite
 import com.example.ktis.ui.theme.HeartsRed
 
 @Composable
 fun CardView(
-    card: Card?,
-    faceUp: Boolean,
+    card: Card,
+    isWinner: Boolean = false,
+    throwDirection: Float = 0f,
     modifier: Modifier = Modifier
 ) {
-    val cardRotation = remember { Animatable(0f) }
-    val cardYOffset = remember { Animatable(-180f) }
-    val cardScale = remember { Animatable(0.88f) }
-    val cardShake = remember { Animatable(0f) }
+    val offsetX =
+        remember { Animatable(throwDirection * 420f) }
+
+    val offsetY =
+        remember { Animatable(180f) }
+
+    val rotation =
+        remember { Animatable(throwDirection * 14f) }
+
+    val scale =
+        remember { Animatable(0.72f) }
+
+    val impact =
+        remember { Animatable(1f) }
 
     LaunchedEffect(card) {
-        if (card != null) {
-            cardRotation.snapTo(0f)
-            cardYOffset.snapTo(-180f)
-            cardScale.snapTo(0.88f)
-            cardShake.snapTo(0f)
 
-            // پرتاب سریع کارت روی میز
-            cardYOffset.animateTo(
-                0f,
-                animationSpec = tween(
-                    durationMillis = 260,
-                    easing = FastOutSlowInEasing
-                )
-            )
+        offsetX.snapTo(throwDirection * 420f)
+        offsetY.snapTo(180f)
+        rotation.snapTo(throwDirection * 14f)
+        scale.snapTo(0.72f)
+        impact.snapTo(1f)
 
-            // ضربه
-            cardScale.animateTo(
-                1.08f,
-                animationSpec = tween(70)
+        offsetX.animateTo(
+            0f,
+            tween(
+                durationMillis = 300,
+                easing = FastOutSlowInEasing
             )
+        )
 
-            cardScale.animateTo(
-                0.97f,
-                animationSpec = tween(80)
+        offsetY.animateTo(
+            0f,
+            tween(
+                durationMillis = 260,
+                easing = FastOutSlowInEasing
             )
+        )
 
-            cardScale.animateTo(
-                1f,
-                animationSpec = tween(100)
-            )
+        rotation.animateTo(
+            0f,
+            tween(220)
+        )
 
-            // لرزش خشن
-            cardShake.animateTo(
-                -7f,
-                animationSpec = tween(35)
-            )
+        scale.animateTo(
+            1.08f,
+            tween(70)
+        )
 
-            cardShake.animateTo(
-                7f,
-                animationSpec = tween(35)
-            )
+        scale.animateTo(
+            0.96f,
+            tween(70)
+        )
 
-            cardShake.animateTo(
-                -4f,
-                animationSpec = tween(30)
-            )
-
-            cardShake.animateTo(
-                4f,
-                animationSpec = tween(30)
-            )
-
-            cardShake.animateTo(
-                0f,
-                animationSpec = tween(30)
-            )
-        }
+        scale.animateTo(
+            1f,
+            tween(80)
+        )
     }
 
-    LaunchedEffect(faceUp) {
-        if (faceUp && card != null) {
-            cardRotation.animateTo(
-                180f,
-                animationSpec = tween(
-                    durationMillis = 420,
-                    easing = LinearOutSlowInEasing
-                )
-            )
-        }
-    }
-
-    val shape = RoundedCornerShape(18.dp)
+    val shape =
+        RoundedCornerShape(18.dp)
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(0.68f)
             .graphicsLayer {
-                rotationY = cardRotation.value
-                translationY = cardYOffset.value
-                translationX = cardShake.value
-                scaleX = cardScale.value
-                scaleY = cardScale.value
+                translationX = offsetX.value
+                translationY = offsetY.value
+                rotationZ = rotation.value
+                scaleX = scale.value
+                scaleY = scale.value
                 cameraDistance = 18f * density
             }
             .border(
-                1.dp,
-                Color.LightGray,
-                shape
+                width = if (isWinner) 4.dp else 1.dp,
+                color =
+                    if (isWinner) {
+                        Color(0xFF20E070)
+                    } else {
+                        Color.LightGray
+                    },
+                shape = shape
             ),
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor =
-                if (cardRotation.value <= 90f) {
-                    CardBack
-                } else {
-                    CardWhite
-                }
+            containerColor = CardWhite
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 10.dp
+            defaultElevation =
+                if (isWinner) 14.dp else 8.dp
         )
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            if (cardRotation.value <= 90f) {
-                FaceDownCard()
-            } else if (card != null) {
-                Box(
-                    modifier = Modifier.graphicsLayer {
-                        rotationY = 180f
-                    }
-                ) {
-                    FaceUpCard(card)
-                }
-            }
+            FaceUpCard(card)
         }
     }
 }
 
 @Composable
-private fun FaceUpCard(card: Card) {
-    val symbol = when (card.suit) {
-        Suit.HEARTS -> "♥"
-        Suit.DIAMONDS -> "♦"
-        Suit.CLUBS -> "♣"
-        Suit.SPADES -> "♠"
-    }
+private fun FaceUpCard(
+    card: Card
+) {
+    val symbol =
+        when (card.suit) {
+            Suit.HEARTS -> "♥"
+            Suit.DIAMONDS -> "♦"
+            Suit.CLUBS -> "♣"
+            Suit.SPADES -> "♠"
+        }
 
-    val color = when (card.suit) {
-        Suit.HEARTS,
-        Suit.DIAMONDS -> HeartsRed
+    val color =
+        when (card.suit) {
+            Suit.HEARTS,
+            Suit.DIAMONDS ->
+                HeartsRed
 
-        Suit.CLUBS,
-        Suit.SPADES -> Color.Black
-    }
+            Suit.CLUBS,
+            Suit.SPADES ->
+                Color.Black
+        }
 
-    val rank = when (card.rank) {
-        Rank.ACE -> "A"
-        Rank.KING -> "K"
-        Rank.QUEEN -> "Q"
-        Rank.JACK -> "J"
-        Rank.TEN -> "10"
-        Rank.NINE -> "9"
-        Rank.EIGHT -> "8"
-        Rank.SEVEN -> "7"
-        Rank.SIX -> "6"
-        Rank.FIVE -> "5"
-        Rank.FOUR -> "4"
-        Rank.THREE -> "3"
-        Rank.TWO -> "2"
-    }
+    val rank =
+        when (card.rank) {
+            Rank.ACE -> "A"
+            Rank.KING -> "K"
+            Rank.QUEEN -> "Q"
+            Rank.JACK -> "J"
+            Rank.TEN -> "10"
+            Rank.NINE -> "9"
+            Rank.EIGHT -> "8"
+            Rank.SEVEN -> "7"
+            Rank.SIX -> "6"
+            Rank.FIVE -> "5"
+            Rank.FOUR -> "4"
+            Rank.THREE -> "3"
+            Rank.TWO -> "2"
+        }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(10.dp),
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
+
         Text(
             text = "$rank$symbol",
             color = color,
-            fontSize = 30.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.Bold
         )
 
@@ -224,32 +207,15 @@ private fun FaceUpCard(card: Card) {
             Text(
                 text = symbol,
                 color = color,
-                fontSize = 64.sp
+                fontSize = 58.sp
             )
         }
 
         Text(
             text = "$rank$symbol",
             color = color,
-            fontSize = 30.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.Bold
         )
     }
-}
-
-@Composable
-private fun FaceDownCard() {
-    Image(
-        painter = painterResource(id = R.drawable.card_back),
-        contentDescription = "پشت کارت",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .border(
-                1.dp,
-                Color.DarkGray,
-                RoundedCornerShape(14.dp)
-            )
-    )
 }

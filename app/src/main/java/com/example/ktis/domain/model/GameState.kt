@@ -7,7 +7,8 @@ data class GameState(
     val roundNumber: Int = 1,
     val gameOver: Boolean = false,
     val tiedPlayerIds: List<Int> = emptyList(),
-    val roundPlayerIds: List<Int> = emptyList()
+    val roundPlayerIds: List<Int> = emptyList(),
+    val roundPlayedPlayerIds: List<Int> = emptyList()
 ) {
     val currentPlayer: Player
         get() = players[currentPlayerIndex]
