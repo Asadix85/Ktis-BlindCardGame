@@ -377,8 +377,18 @@ class MainActivity : ComponentActivity() {
 
                                         message = ""
 
+                                        /*
+                                         * IMPORTANT:
+                                         * Do NOT clear visibleCenterPile here.
+                                         *
+                                         * GameEngine keeps the previous cards on centerPile
+                                         * because they are part of the ongoing tie-break.
+                                         */
                                         visibleCenterPile =
-                                            emptyList()
+                                            gameEngine
+                                                .getState()
+                                                .centerPile
+                                                .toList()
 
                                         animateCenterCards =
                                             true
