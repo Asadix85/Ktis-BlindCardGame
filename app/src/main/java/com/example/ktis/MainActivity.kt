@@ -44,9 +44,6 @@ class MainActivity : ComponentActivity() {
     /*
      * Snapshot of the cards that have been played
      * during the current round.
-     *
-     * GameEngine clears centerPile when the round
-     * is resolved, so we keep a separate copy for UI.
      */
     private var visibleCenterPile by
     mutableStateOf<List<PlayedCard>>(emptyList())
@@ -96,29 +93,19 @@ class MainActivity : ComponentActivity() {
 
                 SetupGameScreen(
 
-                    onStartGame = { names ->
+                    onStartGame = { players ->
 
                         gameState =
                             gameEngine.startGame(
-                                names
+                                players
                             )
 
                         message = ""
-
-                        highlightedWinnerId =
-                            null
-
-                        visibleCenterPile =
-                            emptyList()
-
-                        animateCenterCards =
-                            true
-
-                        finalResult =
-                            null
-
-                        currentScreen =
-                            Screen.PASS_PHONE
+                        highlightedWinnerId = null
+                        visibleCenterPile = emptyList()
+                        animateCenterCards = true
+                        finalResult = null
+                        currentScreen = Screen.PASS_PHONE
                     },
 
                     onBack = {
@@ -145,11 +132,6 @@ class MainActivity : ComponentActivity() {
 
                         onContinue = {
 
-                            /*
-                             * The cards are already on the table.
-                             * Do not animate them again when the next
-                             * player receives the phone.
-                             */
                             animateCenterCards =
                                 false
 
@@ -170,21 +152,10 @@ class MainActivity : ComponentActivity() {
                     val playerId =
                         state.currentPlayer.id
 
-                    val canRequest =
-                        gameEngine.canRequestCard(
-                            playerId
-                        )
-
                     GameScreen(
 
                         state = state,
 
-                        /*
-                         * Use our snapshot instead of state.centerPile.
-                         *
-                         * This is important because GameEngine clears
-                         * centerPile after resolving the round.
-                         */
                         visibleCenterPile =
                             visibleCenterPile,
 
@@ -193,9 +164,6 @@ class MainActivity : ComponentActivity() {
 
                         message =
                             message,
-
-                        canRequestCard =
-                            canRequest,
 
                         highlightedWinnerId =
                             highlightedWinnerId,
@@ -227,7 +195,6 @@ class MainActivity : ComponentActivity() {
                                 gameEngine.getState()
 
                             /*
-                             * IMPORTANT:
                              * Save a snapshot before resolveRound()
                              * can clear the engine's centerPile.
                              */
@@ -251,8 +218,7 @@ class MainActivity : ComponentActivity() {
 
                             /*
                              * If this was the last card of the round,
-                             * stay on the game screen long enough to show
-                             * the played cards before resolving.
+                             * show the cards before resolving.
                              */
                             if (
                                 gameEngine
@@ -261,15 +227,10 @@ class MainActivity : ComponentActivity() {
 
                                 lifecycleScope.launch {
 
-                                    /*
-                                     * Give the UI time to display the
-                                     * last played card.
-                                     */
                                     delay(900)
 
                                     /*
                                      * Stop the throw animation.
-                                     * Cards are now sitting on the table.
                                      */
                                     animateCenterCards =
                                         false
@@ -299,19 +260,11 @@ class MainActivity : ComponentActivity() {
                                                             winner
                                                 }
 
-                                        /*
-                                         * The snapshot still contains
-                                         * all cards from the round,
-                                         * even though GameEngine has
-                                         * already cleared its centerPile.
-                                         */
                                         message =
                                             "${winnerPlayer.name} این دست رو برد! 🏆"
 
                                         /*
-                                         * Keep the cards visible so the
-                                         * players can actually see what
-                                         * the winner had.
+                                         * Keep the cards visible.
                                          */
                                         delay(1500)
 
@@ -319,7 +272,7 @@ class MainActivity : ComponentActivity() {
                                             null
 
                                         /*
-                                         * Now clear the visual table.
+                                         * Clear the visual table.
                                          */
                                         visibleCenterPile =
                                             emptyList()
@@ -370,19 +323,15 @@ class MainActivity : ComponentActivity() {
                                             tieState
 
                                         /*
-                                         * Keep the played cards visible
-                                         * while showing the tie message.
+                                         * Keep the played cards visible.
                                          */
                                         delay(1000)
 
                                         message = ""
 
                                         /*
-                                         * IMPORTANT:
-                                         * Do NOT clear visibleCenterPile here.
-                                         *
-                                         * GameEngine keeps the previous cards on centerPile
-                                         * because they are part of the ongoing tie-break.
+                                         * Do NOT clear the visual pile.
+                                         * It is still part of the tie-break.
                                          */
                                         visibleCenterPile =
                                             gameEngine
@@ -402,37 +351,22 @@ class MainActivity : ComponentActivity() {
 
                                 /*
                                  * Not the last player.
-                                 *
-                                 * Save the card in visibleCenterPile
-                                 * and then pass the phone.
                                  */
                                 currentScreen =
                                     Screen.PASS_PHONE
                             }
                         },
 
-                        onRequestCard = {
+                        /*
+                         * Shuffle the hidden support deck.
+                         *
+                         * The user does not see this deck.
+                         */
+                        onShuffle = {
 
-                            val currentId =
-                                gameEngine
-                                    .getState()
-                                    .currentPlayer
-                                    .id
-
-                            val success =
-                                gameEngine.requestCard(
-                                    currentId
-                                )
-
-                            gameState =
-                                gameEngine.getState()
-
+                            gameEngine.shuffleBalanceDeck()
                             message =
-                                if (success) {
-                                    "یک کارت دریافت شد! 🃏"
-                                } else {
-                                    "امکان درخواست کارت وجود ندارد."
-                                }
+                                "کارت‌ها بر زده شدند! 🔀"
                         },
 
                         onBack = {

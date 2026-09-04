@@ -4,6 +4,7 @@ data class GameState(
     val players: List<Player>,
     val currentPlayerIndex: Int = 0,
     val centerPile: MutableList<PlayedCard> = mutableListOf(),
+    val bank: MutableList<Card> = mutableListOf(),
     val roundNumber: Int = 1,
     val gameOver: Boolean = false,
     val tiedPlayerIds: List<Int> = emptyList(),

@@ -38,6 +38,10 @@ class Deck(
         return cards.removeAt(cards.lastIndex)
     }
 
+    fun add(card: Card) {
+        cards.add(card)
+    }
+
     fun remainingCards(): Int {
         return cards.size
     }

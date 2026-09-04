@@ -3,219 +3,201 @@ package com.example.ktis.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.ktis.R
 import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.Rank
 import com.example.ktis.domain.model.Suit
-import com.example.ktis.ui.theme.CardWhite
-import com.example.ktis.ui.theme.HeartsRed
+import kotlinx.coroutines.launch
 
 @Composable
 fun CardView(
-
     card: Card,
-
     isWinner: Boolean = false,
-
     throwDirection: Float = 0f,
-
-    /*
-     * true:
-     *     card flies onto the table.
-     *
-     * false:
-     *     card is already on the table and simply appears
-     *     in its final position.
-     */
-    animateThrow: Boolean = true,
-
+    animateThrow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
 
-    val offsetX =
-        remember {
-            Animatable(
-                if (animateThrow) {
-                    throwDirection * 420f
-                } else {
-                    0f
+    val resourceId =
+        when (card.suit) {
+
+            Suit.CLUBS ->
+                when (card.rank) {
+                    Rank.TWO -> R.drawable.card_2_clubs
+                    Rank.THREE -> R.drawable.card_3_clubs
+                    Rank.FOUR -> R.drawable.card_4_clubs
+                    Rank.FIVE -> R.drawable.card_5_clubs
+                    Rank.SIX -> R.drawable.card_6_clubs
+                    Rank.SEVEN -> R.drawable.card_7_clubs
+                    Rank.EIGHT -> R.drawable.card_8_clubs
+                    Rank.NINE -> R.drawable.card_9_clubs
+                    Rank.TEN -> R.drawable.card_10_clubs
+                    Rank.JACK -> R.drawable.card_jack_clubs
+                    Rank.QUEEN -> R.drawable.card_queen_clubs
+                    Rank.KING -> R.drawable.card_king_clubs
+                    Rank.ACE -> R.drawable.card_ace_clubs
                 }
-            )
+
+            Suit.DIAMONDS ->
+                when (card.rank) {
+                    Rank.TWO -> R.drawable.card_2_diamonds
+                    Rank.THREE -> R.drawable.card_3_diamonds
+                    Rank.FOUR -> R.drawable.card_4_diamonds
+                    Rank.FIVE -> R.drawable.card_5_diamonds
+                    Rank.SIX -> R.drawable.card_6_diamonds
+                    Rank.SEVEN -> R.drawable.card_7_diamonds
+                    Rank.EIGHT -> R.drawable.card_8_diamonds
+                    Rank.NINE -> R.drawable.card_9_diamonds
+                    Rank.TEN -> R.drawable.card_10_diamonds
+                    Rank.JACK -> R.drawable.card_jack_diamonds
+                    Rank.QUEEN -> R.drawable.card_queen_diamonds
+                    Rank.KING -> R.drawable.card_king_diamonds
+                    Rank.ACE -> R.drawable.card_ace_diamonds
+                }
+
+            Suit.HEARTS ->
+                when (card.rank) {
+                    Rank.TWO -> R.drawable.card_2_hearts
+                    Rank.THREE -> R.drawable.card_3_hearts
+                    Rank.FOUR -> R.drawable.card_4_hearts
+                    Rank.FIVE -> R.drawable.card_5_hearts
+                    Rank.SIX -> R.drawable.card_6_hearts
+                    Rank.SEVEN -> R.drawable.card_7_hearts
+                    Rank.EIGHT -> R.drawable.card_8_hearts
+                    Rank.NINE -> R.drawable.card_9_hearts
+                    Rank.TEN -> R.drawable.card_10_hearts
+                    Rank.JACK -> R.drawable.card_jack_hearts
+                    Rank.QUEEN -> R.drawable.card_queen_hearts
+                    Rank.KING -> R.drawable.card_king_hearts
+                    Rank.ACE -> R.drawable.card_ace_hearts
+                }
+
+            Suit.SPADES ->
+                when (card.rank) {
+                    Rank.TWO -> R.drawable.card_2_spades
+                    Rank.THREE -> R.drawable.card_3_spades
+                    Rank.FOUR -> R.drawable.card_4_spades
+                    Rank.FIVE -> R.drawable.card_5_spades
+                    Rank.SIX -> R.drawable.card_6_spades
+                    Rank.SEVEN -> R.drawable.card_7_spades
+                    Rank.EIGHT -> R.drawable.card_8_spades
+                    Rank.NINE -> R.drawable.card_9_spades
+                    Rank.TEN -> R.drawable.card_10_spades
+                    Rank.JACK -> R.drawable.card_jack_spades
+                    Rank.QUEEN -> R.drawable.card_queen_spades
+                    Rank.KING -> R.drawable.card_king_spades
+                    Rank.ACE -> R.drawable.card_ace_spades
+                }
+        }
+
+    val startX =
+        if (animateThrow) {
+            throwDirection * 220f
+        } else {
+            0f
+        }
+
+    val startY =
+        if (animateThrow) {
+            when {
+                throwDirection == 0f -> 220f
+                throwDirection < 0f -> 80f
+                else -> 80f
+            }
+        } else {
+            0f
+        }
+
+    val offsetX =
+        remember(card, animateThrow) {
+            Animatable(startX)
         }
 
     val offsetY =
-        remember {
-            Animatable(
-                if (animateThrow) {
-                    180f
-                } else {
-                    0f
-                }
-            )
+        remember(card, animateThrow) {
+            Animatable(startY)
         }
 
     val rotation =
-        remember {
+        remember(card, animateThrow) {
             Animatable(
                 if (animateThrow) {
-                    throwDirection * 14f
+                    throwDirection * 12f
                 } else {
                     0f
                 }
             )
         }
 
-    val scale =
-        remember {
-            Animatable(
-                if (animateThrow) {
-                    0.72f
-                } else {
-                    1f
-                }
-            )
+    LaunchedEffect(card, animateThrow) {
+
+        if (animateThrow) {
+
+            launch {
+                offsetX.animateTo(
+                    targetValue = 0f,
+                    animationSpec =
+                        tween(
+                            durationMillis = 500,
+                            easing =
+                                FastOutSlowInEasing
+                        )
+                )
+            }
+
+            launch {
+                offsetY.animateTo(
+                    targetValue = 0f,
+                    animationSpec =
+                        tween(
+                            durationMillis = 500,
+                            easing =
+                                FastOutSlowInEasing
+                        )
+                )
+            }
+
+            launch {
+                rotation.animateTo(
+                    targetValue = 0f,
+                    animationSpec =
+                        tween(
+                            durationMillis = 450
+                        )
+                )
+            }
         }
-
-    /*
-     * Animation only runs when requested.
-     */
-    LaunchedEffect(
-        card,
-        animateThrow
-    ) {
-
-        if (!animateThrow) {
-
-            offsetX.snapTo(0f)
-            offsetY.snapTo(0f)
-            rotation.snapTo(0f)
-            scale.snapTo(1f)
-
-            return@LaunchedEffect
-        }
-
-        /*
-         * Start outside the table.
-         */
-        offsetX.snapTo(
-            throwDirection * 420f
-        )
-
-        offsetY.snapTo(
-            180f
-        )
-
-        rotation.snapTo(
-            throwDirection * 14f
-        )
-
-        scale.snapTo(
-            0.72f
-        )
-
-        /*
-         * Move horizontally.
-         */
-        offsetX.animateTo(
-
-            0f,
-
-            tween(
-                durationMillis = 300,
-                easing =
-                    FastOutSlowInEasing
-            )
-        )
-
-        /*
-         * Move vertically.
-         */
-        offsetY.animateTo(
-
-            0f,
-
-            tween(
-                durationMillis = 260,
-                easing =
-                    FastOutSlowInEasing
-            )
-        )
-
-        /*
-         * Straighten the card.
-         */
-        rotation.animateTo(
-
-            0f,
-
-            tween(
-                durationMillis = 220
-            )
-        )
-
-        /*
-         * Small impact/bounce.
-         */
-        scale.animateTo(
-
-            1.08f,
-
-            tween(
-                durationMillis = 70
-            )
-        )
-
-        scale.animateTo(
-
-            0.96f,
-
-            tween(
-                durationMillis = 70
-            )
-        )
-
-        scale.animateTo(
-
-            1f,
-
-            tween(
-                durationMillis = 80
-            )
-        )
     }
 
-    val shape =
-        RoundedCornerShape(
-            18.dp
-        )
+    Image(
+        painter =
+            painterResource(resourceId),
 
-    Card(
+        contentDescription =
+            "${card.rank} of ${card.suit}",
+
+        contentScale =
+            ContentScale.Fit,
 
         modifier =
             modifier
                 .fillMaxWidth()
-                .aspectRatio(
-                    0.68f
-                )
+                .aspectRatio(0.7f)
                 .graphicsLayer {
 
                     translationX =
@@ -226,219 +208,31 @@ fun CardView(
 
                     rotationZ =
                         rotation.value
-
-                    scaleX =
-                        scale.value
-
-                    scaleY =
-                        scale.value
-
-                    cameraDistance =
-                        18f * density
                 }
-                .border(
+                .then(
+                    if (isWinner) {
 
-                    width =
-                        if (
-                            isWinner
-                        ) {
-                            4.dp
-                        } else {
-                            1.dp
-                        },
+                        Modifier
+                            .shadow(
+                                elevation = 14.dp,
+                                shape =
+                                    RoundedCornerShape(
+                                        10.dp
+                                    )
+                            )
+                            .border(
+                                width = 3.dp,
+                                color =
+                                    Color(0xFFFFD700),
+                                shape =
+                                    RoundedCornerShape(
+                                        10.dp
+                                    )
+                            )
 
-                    color =
-                        if (
-                            isWinner
-                        ) {
-                            Color(0xFF20E070)
-                        } else {
-                            Color.LightGray
-                        },
-
-                    shape =
-                        shape
-                ),
-
-        shape =
-            shape,
-
-        colors =
-            CardDefaults.cardColors(
-
-                containerColor =
-                    CardWhite
-            ),
-
-        elevation =
-            CardDefaults.cardElevation(
-
-                defaultElevation =
-                    if (
-                        isWinner
-                    ) {
-                        14.dp
                     } else {
-                        8.dp
+                        Modifier
                     }
-            )
-    ) {
-
-        Box(
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            contentAlignment =
-                Alignment.Center
-        ) {
-
-            FaceUpCard(
-                card
-            )
-        }
-    }
-}
-
-@Composable
-private fun FaceUpCard(
-    card: Card
-) {
-
-    val symbol =
-        when (card.suit) {
-
-            Suit.HEARTS ->
-                "♥"
-
-            Suit.DIAMONDS ->
-                "♦"
-
-            Suit.CLUBS ->
-                "♣"
-
-            Suit.SPADES ->
-                "♠"
-        }
-
-    val color =
-        when (card.suit) {
-
-            Suit.HEARTS,
-            Suit.DIAMONDS ->
-                HeartsRed
-
-            Suit.CLUBS,
-            Suit.SPADES ->
-                Color.Black
-        }
-
-    val rank =
-        when (card.rank) {
-
-            Rank.ACE ->
-                "A"
-
-            Rank.KING ->
-                "K"
-
-            Rank.QUEEN ->
-                "Q"
-
-            Rank.JACK ->
-                "J"
-
-            Rank.TEN ->
-                "10"
-
-            Rank.NINE ->
-                "9"
-
-            Rank.EIGHT ->
-                "8"
-
-            Rank.SEVEN ->
-                "7"
-
-            Rank.SIX ->
-                "6"
-
-            Rank.FIVE ->
-                "5"
-
-            Rank.FOUR ->
-                "4"
-
-            Rank.THREE ->
-                "3"
-
-            Rank.TWO ->
-                "2"
-        }
-
-    Column(
-
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
-    ) {
-
-        Text(
-
-            text =
-                "$rank$symbol",
-
-            color =
-                color,
-
-            fontSize =
-                26.sp,
-
-            fontWeight =
-                FontWeight.Bold
-        )
-
-        Box(
-
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-
-            contentAlignment =
-                Alignment.Center
-        ) {
-
-            Text(
-
-                text =
-                    symbol,
-
-                color =
-                    color,
-
-                fontSize =
-                    58.sp
-            )
-        }
-
-        Text(
-
-            text =
-                "$rank$symbol",
-
-            color =
-                color,
-
-            fontSize =
-                26.sp,
-
-            fontWeight =
-                FontWeight.Bold
-        )
-    }
+                )
+    )
 }

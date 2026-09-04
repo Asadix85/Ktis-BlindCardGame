@@ -100,22 +100,8 @@ fun PassPhoneScreen(
                 centerPile.forEach { playedCard ->
 
                     CardView(
-
                         card =
                             playedCard.card,
-
-                        isWinner =
-                            false,
-
-                        throwDirection =
-                            0f,
-
-                        /*
-                         * These cards are already on the table.
-                         * Do NOT throw them onto the screen again.
-                         */
-                        animateThrow =
-                            false,
 
                         modifier =
                             Modifier.size(
