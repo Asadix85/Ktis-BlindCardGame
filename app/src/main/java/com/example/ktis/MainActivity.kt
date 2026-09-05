@@ -3,11 +3,6 @@ package com.example.ktis
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,24 +17,17 @@ import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.LoadingScreen
 import com.example.ktis.ui.screens.MainMenuScreen
 import com.example.ktis.ui.screens.ResultScreen
+import com.example.ktis.ui.screens.SettingsScreen
 import com.example.ktis.ui.screens.SetupGameScreen
+import com.example.ktis.ui.screens.TutorialScreen
 import com.example.ktis.ui.theme.KtisTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 
 class MainActivity : ComponentActivity() {
 
     private val gameEngine =
         GameEngine()
-
-    /*
-     * =====================================================
-     * صفحه فعلی
-     * =====================================================
-     *
-     * برنامه از Loading شروع می‌شود.
-     */
 
     private var currentScreen by
     mutableStateOf(Screen.LOADING)
@@ -66,468 +54,242 @@ class MainActivity : ComponentActivity() {
     private var finalResult by
     mutableStateOf<FinalResult?>(null)
 
-    /*
-     * =====================================================
-     * قفل دکمه انداختن کارت
-     * =====================================================
-     *
-     * تا زمانی که انیمیشن و تغییر نوبت تمام نشده،
-     * کلیک بعدی نادیده گرفته می‌شود.
-     */
-
     private var isActionLocked by
     mutableStateOf(false)
 
+    private var soundEnabled by
+    mutableStateOf(true)
+
+    private var musicEnabled by
+    mutableStateOf(true)
+
+    private var vibrationEnabled by
+    mutableStateOf(true)
 
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
-
-        super.onCreate(
-            savedInstanceState
-        )
+        super.onCreate(savedInstanceState)
 
         setContent {
-
             KtisTheme {
-
                 Surface {
-
                     AppContent()
                 }
             }
         }
 
-        /*
-         * =====================================================
-         * Loading
-         * =====================================================
-         *
-         * Loading دقیقاً 1.5 ثانیه نمایش داده می‌شود.
-         *
-         * خود Loading هیچ انیمیشنی ندارد.
-         * انیمیشن فقط هنگام ورود به Menu اتفاق می‌افتد.
-         */
-
         lifecycleScope.launch {
-
             delay(1500)
-
-            currentScreen =
-                Screen.MENU
+            currentScreen = Screen.MENU
         }
     }
 
-
     @Composable
     private fun AppContent() {
+        when (currentScreen) {
+            Screen.LOADING -> {
+                LoadingScreen()
+            }
 
-        /*
-         * =====================================================
-         * Transition بین Loading و Menu
-         * =====================================================
-         *
-         * فقط تغییر صفحه با Fade انجام می‌شود.
-         *
-         * مدت کوتاه انتخاب شده تا کاربر معطل نشود.
-         */
+            Screen.MENU -> {
+                MainMenuScreen(
+                    onStart = {
+                        currentScreen =
+                            Screen.SETUP
+                    },
+                    onContinue = {},
+                    onSettings = {
+                        currentScreen =
+                            Screen.SETTINGS
+                    },
+                    onTutorial = {
+                        currentScreen =
+                            Screen.TUTORIAL
+                    }
+                )
+            }
 
-        AnimatedContent(
+            Screen.SETTINGS -> {
+                SettingsScreen(
+                    soundEnabled = soundEnabled,
+                    musicEnabled = musicEnabled,
+                    vibrationEnabled = vibrationEnabled,
+                    onSoundChanged = {
+                        soundEnabled = it
+                    },
+                    onMusicChanged = {
+                        musicEnabled = it
+                    },
+                    onVibrationChanged = {
+                        vibrationEnabled = it
+                    },
+                    onBack = {
+                        currentScreen =
+                            Screen.MENU
+                    }
+                )
+            }
 
-            targetState =
-                currentScreen,
+            Screen.TUTORIAL -> {
+                TutorialScreen(
+                    onBack = {
+                        currentScreen =
+                            Screen.MENU
+                    }
+                )
+            }
 
-            transitionSpec = {
+            Screen.SETUP -> {
+                SetupGameScreen(
+                    onStartGame = { players ->
+                        gameState =
+                            gameEngine.startGame(
+                                players
+                            )
 
-                fadeIn(
-                    animationSpec =
-                        tween(
-                            durationMillis = 350
-                        )
-                ) togetherWith
-                        fadeOut(
-                            animationSpec =
-                                tween(
-                                    durationMillis = 200
-                                )
-                        )
-            },
+                        message = ""
+                        highlightedWinnerId = null
+                        visibleCenterPile =
+                            emptyList()
 
-            label =
-                "screen_transition"
-        ) { screen ->
+                        animateCenterCards = true
+                        finalResult = null
+                        isActionLocked = false
 
-            when (screen) {
+                        currentScreen =
+                            Screen.GAME
+                    },
+                    onBack = {
+                        currentScreen =
+                            Screen.MENU
+                    }
+                )
+            }
 
-                /*
-                 * =================================================
-                 * LOADING
-                 * =================================================
-                 */
+            Screen.GAME -> {
+                val state = gameState
 
-                Screen.LOADING -> {
+                if (state != null) {
+                    val playerId =
+                        state.currentPlayer.id
 
-                    LoadingScreen()
-                }
+                    GameScreen(
+                        state = state,
+                        visibleCenterPile =
+                            visibleCenterPile,
+                        animateCenterCards =
+                            animateCenterCards,
+                        message = message,
+                        highlightedWinnerId =
+                            highlightedWinnerId,
+                        onDrawCard = {
+                            if (isActionLocked) {
+                                return@GameScreen
+                            }
 
+                            isActionLocked = true
 
-                /*
-                 * =================================================
-                 * MENU
-                 * =================================================
-                 */
+                            if (
+                                state.currentPlayer
+                                    .remainingCards <= 0
+                            ) {
+                                isActionLocked = false
+                                return@GameScreen
+                            }
 
-                Screen.MENU -> {
+                            try {
+                                gameEngine.playCard()
 
-                    MainMenuScreen(
+                                gameState =
+                                    gameEngine.getState()
 
-                        onStart = {
+                                visibleCenterPile =
+                                    gameEngine
+                                        .getState()
+                                        .centerPile
+                                        .toList()
 
-                            currentScreen =
-                                Screen.SETUP
-                        }
-                    )
-                }
+                                animateCenterCards = true
 
+                                val afterPlay =
+                                    gameEngine.getState()
 
-                /*
-                 * =================================================
-                 * SETUP
-                 * =================================================
-                 */
-
-                Screen.SETUP -> {
-
-                    SetupGameScreen(
-
-                        onStartGame = { players ->
-
-                            gameState =
-                                gameEngine.startGame(
-                                    players
-                                )
-
-                            message =
-                                ""
-
-                            highlightedWinnerId =
-                                null
-
-                            visibleCenterPile =
-                                emptyList()
-
-                            animateCenterCards =
-                                true
-
-                            finalResult =
-                                null
-
-                            /*
-                             * اطمینان از باز بودن قفل
-                             * برای شروع بازی جدید
-                             */
-
-                            isActionLocked =
-                                false
-
-                            currentScreen =
-                                Screen.GAME
-                        },
-
-                        onBack = {
-
-                            currentScreen =
-                                Screen.MENU
-                        }
-                    )
-                }
-
-
-                /*
-                 * =================================================
-                 * GAME
-                 * =================================================
-                 */
-
-                Screen.GAME -> {
-
-                    val state =
-                        gameState
-
-                    if (state != null) {
-
-                        /*
-                         * ID بازیکنی که همین الان نوبتش است.
-                         */
-
-                        val playerId =
-                            state.currentPlayer.id
-
-                        GameScreen(
-
-                            state =
-                                state,
-
-                            visibleCenterPile =
-                                visibleCenterPile,
-
-                            animateCenterCards =
-                                animateCenterCards,
-
-                            message =
-                                message,
-
-                            highlightedWinnerId =
-                                highlightedWinnerId,
-
-                            onDrawCard = {
-
-                                /*
-                                 * =================================================
-                                 * قفل اصلی
-                                 * =================================================
-                                 */
-
-                                if (isActionLocked) {
-
-                                    return@GameScreen
-                                }
-
-                                /*
-                                 * همین لحظه قفل می‌کنیم.
-                                 */
-
-                                isActionLocked =
-                                    true
-
-                                /*
-                                 * اگر کارت تمام شده باشد،
-                                 * قفل را آزاد کن.
-                                 */
+                                message =
+                                    "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
 
                                 if (
-                                    state.currentPlayer
-                                        .remainingCards <= 0
+                                    !gameEngine.isRoundComplete()
                                 ) {
-
-                                    isActionLocked =
-                                        false
+                                    lifecycleScope.launch {
+                                        delay(800)
+                                        isActionLocked =
+                                            false
+                                    }
 
                                     return@GameScreen
                                 }
 
-                                try {
+                                lifecycleScope.launch {
+                                    try {
+                                        delay(900)
 
-                                    /*
-                                     * بازیکن کارت را می‌اندازد.
-                                     */
+                                        animateCenterCards =
+                                            false
 
-                                    gameEngine.playCard()
+                                        val winner =
+                                            gameEngine.resolveRound()
 
-                                    /*
-                                     * وضعیت جدید بازی.
-                                     */
+                                        val resolved =
+                                            gameEngine.getState()
 
-                                    gameState =
-                                        gameEngine.getState()
+                                        gameState =
+                                            resolved
 
-                                    /*
-                                     * کارت‌های روی زمین.
-                                     */
+                                        if (
+                                            winner != null
+                                        ) {
+                                            highlightedWinnerId =
+                                                winner
 
-                                    visibleCenterPile =
-                                        gameEngine
-                                            .getState()
-                                            .centerPile
-                                            .toList()
+                                            val winnerPlayer =
+                                                resolved.players
+                                                    .first {
+                                                        it.id == winner
+                                                    }
 
-                                    /*
-                                     * انیمیشن پرتاب کارت.
-                                     */
+                                            message =
+                                                "${winnerPlayer.name} این دست رو برد! 🏆"
 
-                                    animateCenterCards =
-                                        true
+                                            delay(1500)
 
-                                    val afterPlay =
-                                        gameEngine.getState()
+                                            highlightedWinnerId =
+                                                null
 
-                                    message =
-                                        "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
-
-                                    /*
-                                     * =================================================
-                                     * دست هنوز تمام نشده
-                                     * =================================================
-                                     */
-
-                                    if (
-                                        !gameEngine.isRoundComplete()
-                                    ) {
-
-                                        lifecycleScope.launch {
-
-                                            /*
-                                             * تقریباً برابر با
-                                             * زمان چرخش زمین.
-                                             */
-
-                                            delay(800)
-
-                                            isActionLocked =
-                                                false
-                                        }
-
-                                        return@GameScreen
-                                    }
-
-                                    /*
-                                     * =================================================
-                                     * دست تمام شده
-                                     * =================================================
-                                     *
-                                     * قفل تا مشخص شدن نتیجه
-                                     * باقی می‌ماند.
-                                     */
-
-                                    lifecycleScope.launch {
-
-                                        try {
-
-                                            /*
-                                             * کارت‌ها 900ms
-                                             * روی زمین دیده شوند.
-                                             */
-
-                                            delay(900)
+                                            visibleCenterPile =
+                                                emptyList()
 
                                             animateCenterCards =
-                                                false
+                                                true
 
-                                            val winner =
-                                                gameEngine.resolveRound()
-
-                                            val resolved =
+                                            val updated =
                                                 gameEngine.getState()
 
                                             gameState =
-                                                resolved
-
-                                            /*
-                                             * =================================================
-                                             * برنده مشخص شده
-                                             * =================================================
-                                             */
+                                                updated
 
                                             if (
-                                                winner != null
+                                                updated.gameOver
                                             ) {
+                                                finalResult =
+                                                    GameResult.calculate(
+                                                        updated
+                                                    )
 
-                                                highlightedWinnerId =
-                                                    winner
-
-                                                val winnerPlayer =
-                                                    resolved.players
-                                                        .first {
-                                                            it.id == winner
-                                                        }
-
-                                                message =
-                                                    "${winnerPlayer.name} این دست رو برد! 🏆"
-
-                                                /*
-                                                 * نتیجه مدتی دیده شود.
-                                                 */
-
-                                                delay(1500)
-
-                                                highlightedWinnerId =
-                                                    null
-
-                                                /*
-                                                 * پاک کردن زمین.
-                                                 */
-
-                                                visibleCenterPile =
-                                                    emptyList()
-
-                                                animateCenterCards =
-                                                    true
-
-                                                val updated =
-                                                    gameEngine.getState()
-
-                                                gameState =
-                                                    updated
-
-                                                if (
-                                                    updated.gameOver
-                                                ) {
-
-                                                    finalResult =
-                                                        GameResult.calculate(
-                                                            updated
-                                                        )
-
-                                                    currentScreen =
-                                                        Screen.RESULT
-
-                                                } else {
-
-                                                    message =
-                                                        ""
-
-                                                    currentScreen =
-                                                        Screen.GAME
-
-                                                    /*
-                                                     * آماده برای نوبت بعد.
-                                                     */
-
-                                                    isActionLocked =
-                                                        false
-                                                }
-
+                                                currentScreen =
+                                                    Screen.RESULT
                                             } else {
-
-                                                /*
-                                                 * =================================================
-                                                 * مساوی
-                                                 * =================================================
-                                                 */
-
-                                                val tieState =
-                                                    gameEngine.getState()
-
-                                                gameState =
-                                                    tieState
-
-                                                message =
-                                                    "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
-
-                                                /*
-                                                 * کارت‌های مساوی
-                                                 * همچنان روی زمین.
-                                                 */
-
-                                                visibleCenterPile =
-                                                    tieState
-                                                        .centerPile
-                                                        .toList()
-
-                                                animateCenterCards =
-                                                    false
-
-                                                /*
-                                                 * کمی زمان برای دیدن نتیجه.
-                                                 */
-
-                                                delay(1000)
-
-                                                message =
-                                                    ""
-
-                                                animateCenterCards =
-                                                    true
+                                                message = ""
 
                                                 currentScreen =
                                                     Screen.GAME
@@ -535,163 +297,111 @@ class MainActivity : ComponentActivity() {
                                                 isActionLocked =
                                                     false
                                             }
+                                        } else {
+                                            val tieState =
+                                                gameEngine.getState()
 
-                                        } catch (_: Exception) {
+                                            gameState =
+                                                tieState
 
-                                            /*
-                                             * اگر در پردازش نتیجه خطایی رخ داد،
-                                             * بازی برای همیشه قفل نشود.
-                                             */
+                                            message =
+                                                "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
+
+                                            visibleCenterPile =
+                                                tieState.centerPile
+                                                    .toList()
+
+                                            animateCenterCards =
+                                                false
+
+                                            delay(1000)
+
+                                            message = ""
+
+                                            animateCenterCards =
+                                                true
+
+                                            currentScreen =
+                                                Screen.GAME
 
                                             isActionLocked =
                                                 false
                                         }
+                                    } catch (_: Exception) {
+                                        isActionLocked =
+                                            false
                                     }
-
-                                } catch (_: Exception) {
-
-                                    /*
-                                     * اگر playCard خطا داد،
-                                     * قفل را آزاد می‌کنیم.
-                                     */
-
-                                    isActionLocked =
-                                        false
                                 }
-                            },
-
-
-                            /*
-                             * =================================================
-                             * بر زدن دسته پشتیبان
-                             * =================================================
-                             */
-
-                            onShuffle = {
-
-                                /*
-                                 * هنگام انیمیشن/پردازش دست،
-                                 * بر زدن انجام نشود.
-                                 */
-
-                                if (isActionLocked) {
-
-                                    return@GameScreen
-                                }
-
-                                gameEngine.shuffleBalanceDeck()
-
-                                message =
-                                    "کارت‌ها بر زده شدند! 🔀"
-                            },
-
-
-                            /*
-                             * =================================================
-                             * بازگشت به منو
-                             * =================================================
-                             */
-
-                            onBack = {
-
+                            } catch (_: Exception) {
                                 isActionLocked =
                                     false
-
-                                currentScreen =
-                                    Screen.MENU
                             }
-                        )
-                    }
+                        },
+                        onShuffle = {
+                            if (isActionLocked) {
+                                return@GameScreen
+                            }
+
+                            gameEngine.shuffleBalanceDeck()
+
+                            message =
+                                "کارت‌ها بر زده شدند! 🔀"
+                        },
+                        onBack = {
+                            isActionLocked = false
+                            currentScreen =
+                                Screen.MENU
+                        }
+                    )
                 }
+            }
 
+            Screen.RESULT -> {
+                val result =
+                    finalResult
 
-                /*
-                 * =================================================
-                 * RESULT
-                 * =================================================
-                 */
-
-                Screen.RESULT -> {
-
-                    val result =
-                        finalResult
-
-                    if (result != null) {
-
-                        val names =
-                            gameState
-                                ?.players
-                                ?.associate {
-                                    it.id to it.name
-                                }
-                                ?: emptyMap()
-
-                        ResultScreen(
-
-                            result =
-                                result,
-
-                            playerNames =
-                                names,
-
-                            onNewGame = {
-
-                                isActionLocked =
-                                    false
-
-                                currentScreen =
-                                    Screen.SETUP
-                            },
-
-                            onMenu = {
-
-                                isActionLocked =
-                                    false
-
-                                currentScreen =
-                                    Screen.MENU
+                if (result != null) {
+                    val names =
+                        gameState
+                            ?.players
+                            ?.associate {
+                                it.id to it.name
                             }
-                        )
-                    }
+                            ?: emptyMap()
+
+                    ResultScreen(
+                        result = result,
+                        playerNames = names,
+                        onNewGame = {
+                            isActionLocked = false
+                            currentScreen =
+                                Screen.SETUP
+                        },
+                        onMenu = {
+                            isActionLocked = false
+                            currentScreen =
+                                Screen.MENU
+                        }
+                    )
                 }
             }
         }
     }
 
-
-    /*
-     * =====================================================
-     * گرفتن State فعلی GameEngine
-     * =====================================================
-     */
-
     private fun gameEngineStateOrNull() =
         try {
-
             gameEngine.getState()
-
         } catch (_: Exception) {
-
             null
         }
 
-
-    /*
-     * =====================================================
-     * Screen
-     * =====================================================
-     */
-
     private enum class Screen {
-
         LOADING,
-
         MENU,
-
+        SETTINGS,
+        TUTORIAL,
         SETUP,
-
         GAME,
-
         RESULT
     }
 }
