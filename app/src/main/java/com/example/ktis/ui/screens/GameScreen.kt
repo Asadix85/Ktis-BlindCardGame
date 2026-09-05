@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,9 +69,7 @@ fun GameScreen(
     onBack: () -> Unit
 ) {
     val playerCount = state.players.size
-
     val angleStep = 360f / playerCount
-
     val currentSeat = state.currentPlayer.seat
 
     var rotationTarget by remember {
@@ -99,7 +98,7 @@ fun GameScreen(
 
     val tableRotation by animateFloatAsState(
         targetValue = rotationTarget,
-        animationSpec = tween(700),
+        animationSpec = tween(1100),
         label = "table_rotation"
     )
 
@@ -149,7 +148,7 @@ fun GameScreen(
             }
 
             Spacer(
-                Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp)
             )
 
             if (message.isNotEmpty()) {
@@ -183,7 +182,7 @@ fun GameScreen(
                 }
 
                 Spacer(
-                    Modifier.height(8.dp)
+                    modifier = Modifier.height(8.dp)
                 )
             }
 
@@ -266,20 +265,19 @@ fun GameScreen(
                         }
                     }
                 }
-
-                CurrentPlayerIndicator(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 18.dp),
-                    playerName =
-                        state.currentPlayer.name,
-                    remainingCards =
-                        state.currentPlayer.remainingCards
-                )
             }
 
             Spacer(
-                Modifier.height(8.dp)
+                modifier = Modifier.height(6.dp)
+            )
+
+            PlayerCardStack(
+                remainingCards =
+                    state.currentPlayer.remainingCards
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
             )
 
             Text(
@@ -292,7 +290,7 @@ fun GameScreen(
             )
 
             Spacer(
-                Modifier.height(8.dp)
+                modifier = Modifier.height(6.dp)
             )
 
             Row(
@@ -329,7 +327,7 @@ fun GameScreen(
             }
 
             Spacer(
-                Modifier.height(6.dp)
+                modifier = Modifier.height(6.dp)
             )
 
             Button(
@@ -350,6 +348,90 @@ fun GameScreen(
 }
 
 @Composable
+private fun PlayerCardStack(
+    remainingCards: Int
+) {
+    if (remainingCards <= 0) {
+        Spacer(
+            modifier = Modifier.height(54.dp)
+        )
+        return
+    }
+
+    val cardWidth = 46.dp
+    val cardHeight = 66.dp
+    val maxStackHeight = 68.dp
+
+    val visibleCards =
+        minOf(remainingCards, 18)
+
+    val spacing =
+        if (visibleCards <= 1) {
+            0.dp
+        } else {
+            ((maxStackHeight.value - cardHeight.value) /
+                    (visibleCards - 1)).dp
+        }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(maxStackHeight),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .width(cardWidth)
+                .height(cardHeight)
+        ) {
+            repeat(visibleCards) { index ->
+                Image(
+                    painter = painterResource(
+                        id = R.drawable.card_back
+                    ),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .width(cardWidth)
+                        .height(cardHeight)
+                        .offset(
+                            y = -(spacing * index)
+                        )
+                )
+            }
+        }
+
+        CardCountLabel(
+            count = remainingCards
+        )
+    }
+}
+
+@Composable
+private fun CardCountLabel(
+    count: Int
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor =
+                CarpetBrown.copy(alpha = 0.92f)
+        ),
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Text(
+            text = "$count کارت",
+            modifier = Modifier.padding(
+                horizontal = 10.dp,
+                vertical = 3.dp
+            ),
+            color = CarpetGold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 private fun CardAtSeat(
     card: Card,
     seat: Int,
@@ -366,7 +448,6 @@ private fun CardAtSeat(
     val radius = 0.29f
 
     val x = -sin(angle) * radius
-
     val y = cos(angle) * radius
 
     val stackOffset = (cardIndex % 5) * 7
@@ -407,44 +488,5 @@ private fun CardAtSeat(
             animateThrow = animateThrow,
             modifier = Modifier.width(72.dp)
         )
-    }
-}
-
-@Composable
-private fun CurrentPlayerIndicator(
-    modifier: Modifier,
-    playerName: String,
-    remainingCards: Int
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor =
-                CarpetGold.copy(alpha = 0.94f)
-        ),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 18.dp,
-                vertical = 8.dp
-            ),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "● $playerName",
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "$remainingCards کارت",
-                color = Color.Black.copy(
-                    alpha = 0.75f
-                ),
-                fontSize = 11.sp
-            )
-        }
     }
 }
