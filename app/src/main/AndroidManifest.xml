@@ -4,6 +4,8 @@
     <application
             android:theme="@style/Theme.Ktis"
             android:label="Ktis"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
             android:allowBackup="true"
             android:supportsRtl="true">
 
