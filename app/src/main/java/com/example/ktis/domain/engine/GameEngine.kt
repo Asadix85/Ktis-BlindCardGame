@@ -11,6 +11,9 @@ class GameEngine {
 
     private var state: GameState? = null
 
+    /*
+     * دسته پشتیبان مخفی برای بالانس تعداد کارت‌ها
+     */
     private var balanceDeck = Deck(1)
 
     fun startGame(
@@ -19,15 +22,34 @@ class GameEngine {
             recommendedDeckCount(playersSetup.size)
     ): GameState {
 
-        require(playersSetup.size >= 2)
-        require(playersSetup.size <= 8)
-        require(deckCount >= 1)
+        require(playersSetup.size >= 2) {
+            "At least 2 players are required."
+        }
 
+        require(playersSetup.size <= 8) {
+            "Maximum 8 players are allowed."
+        }
+
+        require(deckCount >= 1) {
+            "Deck count must be at least 1."
+        }
+
+        /*
+         * نام بازیکنان را تمیز می‌کنیم
+         * و صندلی را کاملاً خودکار تعیین می‌کنیم.
+         *
+         * seat:
+         * 0 = نقطه شروع / پایین صفحه
+         * 1 = بازیکن بعدی در جهت ساعت‌گرد
+         * 2 = بازیکن بعدی
+         * ...
+         */
         val setups =
-            playersSetup.map {
+            playersSetup.mapIndexed { index, player ->
+
                 PlayerSetup(
-                    name = it.name.trim(),
-                    seat = it.seat
+                    name = player.name.trim(),
+                    seat = index
                 )
             }
 
@@ -35,23 +57,16 @@ class GameEngine {
             setups.all {
                 it.name.isNotEmpty()
             }
-        )
+        ) {
+            "Player names cannot be empty."
+        }
 
         require(
             setups.map { it.name }.distinct().size ==
                     setups.size
-        )
-
-        require(
-            setups.map { it.seat }.distinct().size ==
-                    setups.size
-        )
-
-        require(
-            setups.all {
-                it.seat in 0..7
-            }
-        )
+        ) {
+            "Player names must be unique."
+        }
 
         /*
          * دسته اصلی بازی
@@ -62,7 +77,7 @@ class GameEngine {
         deck.shuffle()
 
         /*
-         * دسته پشتیبان مخفی
+         * دسته پشتیبان کاملاً جدا
          */
         balanceDeck =
             Deck(1)
@@ -70,7 +85,7 @@ class GameEngine {
         balanceDeck.shuffle()
 
         /*
-         * ساخت بازیکنان همراه با صندلی
+         * ساخت بازیکنان
          */
         val players =
             setups.mapIndexed { index, setup ->
@@ -82,26 +97,20 @@ class GameEngine {
                 )
             }
 
+        /*
+         * تقسیم کارت‌ها
+         */
         dealCards(
             deck = deck,
             players = players
         )
 
         /*
-         * بازیکن شروع‌کننده:
-         *
-         * بازیکنی که روی صندلی 7
-         * (پایین صفحه / دید اولیه)
-         * نشسته باشد.
-         *
-         * اگر نبود، بازیکن اول.
+         * بازیکن اول همیشه شروع می‌کند.
+         * seat = 0
+         * یعنی نقطه پایین صفحه / دید اولیه
          */
-        val startingPlayerIndex =
-            players.indexOfFirst {
-                it.seat == 7
-            }.let {
-                if (it >= 0) it else 0
-            }
+        val startingPlayerIndex = 0
 
         state =
             GameState(
@@ -122,89 +131,27 @@ class GameEngine {
     }
 
     /*
-     * سازگاری با کدهای قدیمی
-     *
-     * فعلاً اگر جایی startGame(List<String>)
-     * استفاده شده باشد، بازی هم اجرا می‌شود.
+     * نسخه ساده برای سازگاری با کدهای قبلی
      */
     fun startGame(
         playerNames: List<String>
     ): GameState {
 
         val setups =
-            playerNames.mapIndexed { index, name ->
+            playerNames.map { name ->
 
                 PlayerSetup(
-                    name = name,
-                    seat = defaultSeatForPlayer(
-                        index,
-                        playerNames.size
-                    )
+                    name = name.trim(),
+                    seat = 0
                 )
             }
 
         return startGame(setups)
     }
 
-    private fun defaultSeatForPlayer(
-        index: Int,
-        playerCount: Int
-    ): Int {
-
-        return when (playerCount) {
-
-            2 -> {
-                if (index == 0) 7 else 3
-            }
-
-            3 -> {
-                when (index) {
-                    0 -> 7
-                    1 -> 3
-                    else -> 5
-                }
-            }
-
-            4 -> {
-                when (index) {
-                    0 -> 7
-                    1 -> 1
-                    2 -> 3
-                    else -> 5
-                }
-            }
-
-            5 -> {
-                when (index) {
-                    0 -> 7
-                    1 -> 1
-                    2 -> 2
-                    3 -> 3
-                    else -> 5
-                }
-            }
-
-            6 -> {
-                when (index) {
-                    0 -> 7
-                    1 -> 0
-                    2 -> 2
-                    3 -> 3
-                    4 -> 4
-                    else -> 6
-                }
-            }
-
-            7 -> {
-                index
-            }
-
-            else -> {
-                index
-            }
-        }
-    }
-
+    /*
+     * تقسیم مساوی کارت‌ها
+     */
     private fun dealCards(
         deck: Deck,
         players: List<Player>
@@ -231,6 +178,9 @@ class GameEngine {
         }
     }
 
+    /*
+     * انداختن کارت
+     */
     fun playCard(): Card {
 
         val current =
@@ -262,11 +212,17 @@ class GameEngine {
             "Player has no cards."
         }
 
+        /*
+         * برداشتن آخرین کارت دست
+         */
         val card =
             player.drawPile.removeAt(
                 player.drawPile.lastIndex
             )
 
+        /*
+         * قرار دادن کارت روی زمین
+         */
         current.centerPile.add(
             PlayedCard(
                 playerId = player.id,
@@ -285,6 +241,9 @@ class GameEngine {
 
         if (roundComplete) {
 
+            /*
+             * همه بازیکنان فعال کارت انداختند
+             */
             state =
                 current.copy(
                     roundPlayedPlayerIds =
@@ -293,6 +252,9 @@ class GameEngine {
 
         } else {
 
+            /*
+             * رفتن به بازیکن بعدی
+             */
             state =
                 current.copy(
                     currentPlayerIndex =
@@ -308,6 +270,9 @@ class GameEngine {
         return card
     }
 
+    /*
+     * آیا دست کامل شده؟
+     */
     fun isRoundComplete(): Boolean {
 
         val current =
@@ -318,6 +283,9 @@ class GameEngine {
         }
     }
 
+    /*
+     * مشخص کردن برنده دست
+     */
     fun resolveRound(): Int? {
 
         val current =
@@ -326,6 +294,9 @@ class GameEngine {
         val activePlayers =
             current.roundPlayerIds.toSet()
 
+        /*
+         * هنوز همه کارت نینداخته‌اند
+         */
         if (
             !activePlayers.all {
                 it in current.roundPlayedPlayerIds
@@ -334,6 +305,9 @@ class GameEngine {
             return null
         }
 
+        /*
+         * آخرین کارت هر بازیکن فعال
+         */
         val latestCards =
             activePlayers.mapNotNull { playerId ->
 
@@ -353,6 +327,9 @@ class GameEngine {
             return null
         }
 
+        /*
+         * پیدا کردن بالاترین کارت
+         */
         val highest =
             GameRules.highestPlayers(
                 latestCards
@@ -387,7 +364,7 @@ class GameEngine {
         }
 
         /*
-         * برنده
+         * برنده مشخص شده
          */
         val winnerId =
             highest.first()
@@ -397,19 +374,30 @@ class GameEngine {
                 it.id == winnerId
             }
 
+        /*
+         * تمام کارت‌های روی زمین
+         * به برنده داده می‌شوند
+         */
         winner.collectedCards.addAll(
             current.centerPile.map {
                 it.card
             }
         )
 
+        /*
+         * زمین پاک می‌شود
+         */
         current.centerPile.clear()
 
         /*
-         * بالانس کارت‌ها
+         * بالانس تعداد کارت‌ها
          */
         balancePlayers()
 
+        /*
+         * اگر هیچ بازیکنی کارت نداشته باشد
+         * بازی تمام شده
+         */
         val gameOver =
             current.players.all {
                 it.drawPile.isEmpty()
@@ -449,6 +437,9 @@ class GameEngine {
         return winnerId
     }
 
+    /*
+     * بالانس تعداد کارت بازیکنان
+     */
     private fun balancePlayers() {
 
         val current =
@@ -463,6 +454,10 @@ class GameEngine {
                 it.drawPile.size
             }
 
+        /*
+         * پرتکرارترین تعداد کارت
+         * به عنوان مقدار هدف انتخاب می‌شود.
+         */
         val target =
             counts
                 .groupingBy {
@@ -483,8 +478,8 @@ class GameEngine {
                 .key
 
         /*
-         * بازیکن‌هایی که بیشتر دارند
-         * کارت اضافه را به دسته پشتیبان می‌دهند.
+         * کارت اضافه بازیکن‌ها
+         * وارد دسته پشتیبان می‌شود.
          */
         current.players.forEach { player ->
 
@@ -502,7 +497,7 @@ class GameEngine {
         }
 
         /*
-         * بازیکن‌هایی که کمتر دارند
+         * بازیکن‌هایی که کارت کمتری دارند
          * از دسته پشتیبان کارت می‌گیرند.
          */
         current.players.forEach { player ->
@@ -521,6 +516,9 @@ class GameEngine {
         }
     }
 
+    /*
+     * بر زدن دسته پشتیبان
+     */
     fun shuffleBalanceDeck() {
         balanceDeck.shuffle()
     }
@@ -533,6 +531,12 @@ class GameEngine {
         return requireState()
     }
 
+    /*
+     * رفتن به بازیکن فعال بعدی
+     *
+     * چون seatها به ترتیب 0..n-1 هستند،
+     * این ترتیب همان حرکت ساعت‌گرد است.
+     */
     private fun nextActivePlayerIndex(
         current: GameState
     ): Int {
@@ -555,6 +559,10 @@ class GameEngine {
         return index
     }
 
+    /*
+     * بعد از بردن یک دست،
+     * بازیکن بعدی برنده شروع می‌کند.
+     */
     private fun nextPlayerAfter(
         current: GameState,
         playerId: Int

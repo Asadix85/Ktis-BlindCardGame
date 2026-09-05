@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,15 +36,18 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.GameState
 import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.ui.components.CardView
 import com.example.ktis.ui.theme.Gold
 import com.example.ktis.ui.theme.TableGreenLight
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 @Composable
 fun GameScreen(
@@ -57,11 +61,12 @@ fun GameScreen(
     onBack: () -> Unit
 ) {
 
-    /*
-     * بازیکن فعلی همیشه باید پایین صفحه باشد.
-     *
-     * صندلی 7 = پایین
-     */
+    val playerCount =
+        state.players.size
+
+    val angleStep =
+        360f / playerCount
+
     val currentSeat =
         state.currentPlayer.seat
 
@@ -75,15 +80,22 @@ fun GameScreen(
         mutableStateOf(currentSeat)
     }
 
+    /*
+     * نفر بعدی همیشه از سمت چپ می‌آید.
+     */
     LaunchedEffect(currentSeat) {
 
         if (currentSeat != previousSeat) {
 
-            val steps =
-                (previousSeat - currentSeat + 8) % 8
+            val seatDifference =
+                (
+                        currentSeat -
+                                previousSeat +
+                                playerCount
+                        ) % playerCount
 
-            rotationTarget +=
-                steps * 45f
+            rotationTarget -=
+                seatDifference * angleStep
 
             previousSeat =
                 currentSeat
@@ -115,12 +127,6 @@ fun GameScreen(
                 )
                 .padding(12.dp)
     ) {
-
-        /*
-         * =========================
-         * اطلاعات بازی
-         * =========================
-         */
 
         Row(
             modifier =
@@ -161,10 +167,6 @@ fun GameScreen(
             Modifier.height(8.dp)
         )
 
-        /*
-         * پیام
-         */
-
         if (message.isNotEmpty()) {
 
             Card(
@@ -187,7 +189,8 @@ fun GameScreen(
             ) {
 
                 Text(
-                    text = message,
+                    text =
+                        message,
 
                     modifier =
                         Modifier
@@ -207,12 +210,6 @@ fun GameScreen(
             )
         }
 
-        /*
-         * =========================
-         * زمین بازی
-         * =========================
-         */
-
         BoxWithConstraints(
             modifier =
                 Modifier
@@ -231,9 +228,6 @@ fun GameScreen(
                     )
         ) {
 
-            /*
-             * کل زمین می‌چرخد.
-             */
             Box(
                 modifier =
                     Modifier
@@ -242,9 +236,7 @@ fun GameScreen(
             ) {
 
                 /*
-                 * =========================
                  * مرکز زمین
-                 * =========================
                  */
 
                 Box(
@@ -271,7 +263,8 @@ fun GameScreen(
                 ) {
 
                     Text(
-                        text = "KTIS",
+                        text =
+                            "KTIS",
 
                         color =
                             Color.White.copy(
@@ -281,20 +274,18 @@ fun GameScreen(
                         fontWeight =
                             FontWeight.Bold,
 
-                        fontSize = 18.sp
+                        fontSize =
+                            18.sp
                     )
                 }
 
                 /*
-                 * =========================
-                 * کارت‌های بازی‌شده
-                 * =========================
-                 *
-                 * هر کارت جلوی بازیکنی
-                 * قرار می‌گیرد که آن را انداخته.
+                 * کارت‌های روی زمین
                  */
 
-                visibleCenterPile.forEach { playedCard ->
+                visibleCenterPile.forEachIndexed {
+                        index,
+                        playedCard ->
 
                     val player =
                         state.players.firstOrNull {
@@ -304,6 +295,24 @@ fun GameScreen(
 
                     if (player != null) {
 
+                        /*
+                         * فقط آخرین کارت هر بازیکن
+                         * در tie زرد می‌شود.
+                         */
+
+                        val isLatestCardOfPlayer =
+                            visibleCenterPile
+                                .indexOfLast {
+                                    it.playerId ==
+                                            playedCard.playerId
+                                } == index
+
+                        val isTiedCard =
+                            state.tiedPlayerIds.contains(
+                                player.id
+                            ) &&
+                                    isLatestCardOfPlayer
+
                         CardAtSeat(
                             card =
                                 playedCard.card,
@@ -311,53 +320,52 @@ fun GameScreen(
                             seat =
                                 player.seat,
 
+                            playerCount =
+                                playerCount,
+
+                            cardIndex =
+                                index,
+
                             isWinner =
                                 highlightedWinnerId ==
                                         player.id,
+
+                            isTied =
+                                isTiedCard,
 
                             animateThrow =
                                 animateCenterCards
                         )
                     }
                 }
-
-                /*
-                 * =========================
-                 * فقط بازیکن فعلی
-                 * =========================
-                 *
-                 * اسم بقیه نمایش داده نمی‌شود.
-                 */
-
-                CurrentPlayerIndicator(
-                    modifier =
-                        Modifier
-                            .align(
-                                Alignment.BottomCenter
-                            )
-                            .padding(
-                                bottom = 18.dp
-                            ),
-
-                    playerName =
-                        state.currentPlayer.name,
-
-                    remainingCards =
-                        state.currentPlayer
-                            .remainingCards
-                )
             }
+
+            /*
+             * نشانگر بازیکن فعلی
+             */
+
+            CurrentPlayerIndicator(
+                modifier =
+                    Modifier
+                        .align(
+                            Alignment.BottomCenter
+                        )
+                        .padding(
+                            bottom = 18.dp
+                        ),
+
+                playerName =
+                    state.currentPlayer.name,
+
+                remainingCards =
+                    state.currentPlayer
+                        .remainingCards
+            )
         }
 
         Spacer(
             Modifier.height(8.dp)
         )
-
-        /*
-         * =========================
-         * نوبت فعلی
-         * =========================
-         */
 
         Text(
             text =
@@ -379,12 +387,6 @@ fun GameScreen(
         Spacer(
             Modifier.height(8.dp)
         )
-
-        /*
-         * =========================
-         * دکمه‌ها
-         * =========================
-         */
 
         Row(
             modifier =
@@ -454,118 +456,107 @@ fun GameScreen(
 
 
 /*
- * =====================================================
- * کارت روی زمین، جلوی صندلی بازیکن
- * =====================================================
+ * =========================================================
+ * کارت روی زمین
+ * =========================================================
+ *
+ * 0 = پایین
+ * 1 = چپ
+ * 2 = بالا
+ * 3 = راست
+ *
+ * کارت نیز همراه با همین زاویه قرار می‌گیرد،
+ * بنابراین محور طولی کارت همیشه به سمت مرکز است.
  */
 
 @Composable
 private fun CardAtSeat(
-    card: com.example.ktis.domain.model.Card,
+    card: Card,
     seat: Int,
+    playerCount: Int,
+    cardIndex: Int,
     isWinner: Boolean,
+    isTied: Boolean,
     animateThrow: Boolean
 ) {
 
+    val angle =
+        Math.toRadians(
+            seat *
+                    (360.0 / playerCount)
+        )
+
+    val radius =
+        0.29f
+
     /*
-     * جای کارت‌ها نسبت به مرکز زمین.
+     * مختصات دایره:
      *
-     * صندلی 7 = پایین
-     * صندلی 3 = بالا
-     * صندلی 5 = راست
-     * صندلی 1 = چپ
+     * 0 = پایین
+     * 1 = چپ
+     * 2 = بالا
+     * 3 = راست
      */
 
-    val alignment =
-        when (seat) {
+    val x =
+        -sin(angle) * radius
 
-            7 ->
-                Alignment.BottomCenter
+    val y =
+        cos(angle) * radius
 
-            0 ->
-                Alignment.BottomStart
+    val stackOffset =
+        (cardIndex % 5) * 7
 
-            1 ->
-                Alignment.CenterStart
+    val xOffset =
+        (x * 1000).roundToInt() +
+                if (cardIndex % 2 == 0) {
+                    stackOffset
+                } else {
+                    -stackOffset
+                }
 
-            2 ->
-                Alignment.TopStart
-
-            3 ->
-                Alignment.TopCenter
-
-            4 ->
-                Alignment.TopEnd
-
-            5 ->
-                Alignment.CenterEnd
-
-            6 ->
-                Alignment.BottomEnd
-
-            else ->
-                Alignment.Center
-        }
-
-    val horizontalPadding =
-        when (seat) {
-
-            0,
-            2,
-            4,
-            6 -> 52.dp
-
-            else -> 0.dp
-        }
-
-    val verticalPadding =
-        when (seat) {
-
-            0,
-            2,
-            4,
-            6 -> 42.dp
-
-            else -> 18.dp
-        }
+    val yOffset =
+        (y * 1000).roundToInt() +
+                if (cardIndex % 2 == 0) {
+                    -stackOffset
+                } else {
+                    stackOffset
+                }
 
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(
-                    horizontal =
-                        horizontalPadding,
+                .offset {
+                    IntOffset(
+                        x = xOffset,
+                        y = yOffset
+                    )
+                },
 
-                    vertical =
-                        verticalPadding
-                ),
         contentAlignment =
-            alignment
+            Alignment.Center
     ) {
 
         CardView(
-            card = card,
+            card =
+                card,
 
             isWinner =
                 isWinner,
 
-            throwDirection =
-                when (seat) {
+            isTied =
+                isTied,
 
-                    7 -> 0f
-                    3 -> 0f
+            /*
+             * جهت قرارگیری خود کارت
+             * و جهت پرتاب هر دو بر اساس
+             * همان زاویه بازیکن هستند.
+             */
 
-                    0,
-                    1,
-                    2 -> -1f
-
-                    4,
-                    5,
-                    6 -> 1f
-
-                    else -> 0f
-                },
+            throwAngle =
+                seat *
+                        (360f / playerCount),
 
             animateThrow =
                 animateThrow,
@@ -578,9 +569,9 @@ private fun CardAtSeat(
 
 
 /*
- * =====================================================
+ * =========================================================
  * نشانگر بازیکن فعلی
- * =====================================================
+ * =========================================================
  */
 
 @Composable
@@ -637,7 +628,8 @@ private fun CurrentPlayerIndicator(
                         alpha = 0.75f
                     ),
 
-                fontSize = 11.sp
+                fontSize =
+                    11.sp
             )
         }
     }

@@ -23,12 +23,15 @@ import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.Rank
 import com.example.ktis.domain.model.Suit
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun CardView(
     card: Card,
     isWinner: Boolean = false,
-    throwDirection: Float = 0f,
+    isTied: Boolean = false,
+    throwAngle: Float = 0f,
     animateThrow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -105,52 +108,114 @@ fun CardView(
                 }
         }
 
+    /*
+     * =====================================================
+     * زاویه کارت
+     * =====================================================
+     *
+     * کارت عمودی در حالت 0 درجه است.
+     *
+     * 0°   = بازیکن پایین
+     * 90°  = بازیکن چپ
+     * 180° = بازیکن بالا
+     * 270° = بازیکن راست
+     *
+     * بنابراین محور طولی کارت همیشه
+     * به سمت مرکز زمین قرار می‌گیرد.
+     */
+
+    val cardAngle =
+        throwAngle
+
+    val angleRadians =
+        Math.toRadians(
+            throwAngle.toDouble()
+        )
+
+    /*
+     * =====================================================
+     * مسیر پرتاب
+     * =====================================================
+     */
+
+    val startDistance =
+        220f
+
     val startX =
         if (animateThrow) {
-            throwDirection * 220f
+            (-sin(angleRadians) * startDistance)
+                .toFloat()
         } else {
             0f
         }
 
     val startY =
         if (animateThrow) {
-            when {
-                throwDirection == 0f -> 220f
-                throwDirection < 0f -> 80f
-                else -> 80f
-            }
+            (cos(angleRadians) * startDistance)
+                .toFloat()
+        } else {
+            0f
+        }
+
+    /*
+     * کمی چرخش هنگام پرتاب،
+     * ولی در پایان خود کارت دوباره
+     * روی زاویه واقعی بازیکن قرار می‌گیرد.
+     */
+
+    val throwSpin =
+        if (animateThrow) {
+            8f
         } else {
             0f
         }
 
     val offsetX =
-        remember(card, animateThrow) {
+        remember(
+            card,
+            animateThrow,
+            throwAngle
+        ) {
             Animatable(startX)
         }
 
     val offsetY =
-        remember(card, animateThrow) {
+        remember(
+            card,
+            animateThrow,
+            throwAngle
+        ) {
             Animatable(startY)
         }
 
-    val rotation =
-        remember(card, animateThrow) {
+    val spin =
+        remember(
+            card,
+            animateThrow,
+            throwAngle
+        ) {
             Animatable(
                 if (animateThrow) {
-                    throwDirection * 12f
+                    throwSpin
                 } else {
                     0f
                 }
             )
         }
 
-    LaunchedEffect(card, animateThrow) {
+    LaunchedEffect(
+        card,
+        animateThrow,
+        throwAngle
+    ) {
 
         if (animateThrow) {
 
             launch {
+
                 offsetX.animateTo(
                     targetValue = 0f,
+
                     animationSpec =
                         tween(
                             durationMillis = 500,
@@ -161,8 +226,10 @@ fun CardView(
             }
 
             launch {
+
                 offsetY.animateTo(
                     targetValue = 0f,
+
                     animationSpec =
                         tween(
                             durationMillis = 500,
@@ -173,8 +240,10 @@ fun CardView(
             }
 
             launch {
-                rotation.animateTo(
+
+                spin.animateTo(
                     targetValue = 0f,
+
                     animationSpec =
                         tween(
                             durationMillis = 450
@@ -206,32 +275,63 @@ fun CardView(
                     translationY =
                         offsetY.value
 
+                    /*
+                     * زاویه واقعی کارت +
+                     * چرخش کوتاه هنگام پرتاب
+                     */
                     rotationZ =
-                        rotation.value
+                        cardAngle +
+                                spin.value
                 }
                 .then(
-                    if (isWinner) {
 
-                        Modifier
-                            .shadow(
-                                elevation = 14.dp,
-                                shape =
-                                    RoundedCornerShape(
-                                        10.dp
-                                    )
-                            )
-                            .border(
-                                width = 3.dp,
-                                color =
-                                    Color(0xFFFFD700),
-                                shape =
-                                    RoundedCornerShape(
-                                        10.dp
-                                    )
-                            )
+                    when {
 
-                    } else {
-                        Modifier
+                        isTied -> {
+
+                            Modifier
+                                .shadow(
+                                    elevation = 14.dp,
+                                    shape =
+                                        RoundedCornerShape(
+                                            10.dp
+                                        )
+                                )
+                                .border(
+                                    width = 4.dp,
+                                    color =
+                                        Color.Yellow,
+                                    shape =
+                                        RoundedCornerShape(
+                                            10.dp
+                                        )
+                                )
+                        }
+
+                        isWinner -> {
+
+                            Modifier
+                                .shadow(
+                                    elevation = 14.dp,
+                                    shape =
+                                        RoundedCornerShape(
+                                            10.dp
+                                        )
+                                )
+                                .border(
+                                    width = 3.dp,
+                                    color =
+                                        Color(0xFFFFD700),
+                                    shape =
+                                        RoundedCornerShape(
+                                            10.dp
+                                        )
+                                )
+                        }
+
+                        else -> {
+                            Modifier
+                        }
                     }
                 )
     )
