@@ -13,6 +13,7 @@ import com.example.ktis.domain.engine.GameEngine
 import com.example.ktis.domain.engine.GameResult
 import com.example.ktis.domain.model.FinalResult
 import com.example.ktis.domain.model.PlayedCard
+import com.example.ktis.domain.save.SaveManager
 import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.LoadingScreen
 import com.example.ktis.ui.screens.MainMenuScreen
@@ -28,6 +29,10 @@ class MainActivity : ComponentActivity() {
 
     private val gameEngine =
         GameEngine()
+
+    private val saveManager by lazy {
+        SaveManager(applicationContext)
+    }
 
     private var currentScreen by
     mutableStateOf(Screen.LOADING)
@@ -57,6 +62,9 @@ class MainActivity : ComponentActivity() {
     private var isActionLocked by
     mutableStateOf(false)
 
+    private var hasSavedGame by
+    mutableStateOf(false)
+
     private var soundEnabled by
     mutableStateOf(true)
 
@@ -71,6 +79,9 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onCreate(savedInstanceState)
 
+        hasSavedGame =
+            saveManager.hasSavedGame()
+
         setContent {
             KtisTheme {
                 Surface {
@@ -81,13 +92,30 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             delay(1500)
-            currentScreen = Screen.MENU
+
+            hasSavedGame =
+                saveManager.hasSavedGame()
+
+            currentScreen =
+                Screen.MENU
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        if (
+            currentScreen == Screen.GAME &&
+            gameState != null
+        ) {
+            saveCurrentGame()
         }
     }
 
     @Composable
     private fun AppContent() {
         when (currentScreen) {
+
             Screen.LOADING -> {
                 LoadingScreen()
             }
@@ -98,32 +126,49 @@ class MainActivity : ComponentActivity() {
                         currentScreen =
                             Screen.SETUP
                     },
-                    onContinue = {},
+
+                    onContinue = {
+                        continueSavedGame()
+                    },
+
                     onSettings = {
                         currentScreen =
                             Screen.SETTINGS
                     },
+
                     onTutorial = {
                         currentScreen =
                             Screen.TUTORIAL
-                    }
+                    },
+
+                    continueEnabled =
+                        hasSavedGame
                 )
             }
 
             Screen.SETTINGS -> {
                 SettingsScreen(
-                    soundEnabled = soundEnabled,
-                    musicEnabled = musicEnabled,
-                    vibrationEnabled = vibrationEnabled,
+                    soundEnabled =
+                        soundEnabled,
+
+                    musicEnabled =
+                        musicEnabled,
+
+                    vibrationEnabled =
+                        vibrationEnabled,
+
                     onSoundChanged = {
                         soundEnabled = it
                     },
+
                     onMusicChanged = {
                         musicEnabled = it
                     },
+
                     onVibrationChanged = {
                         vibrationEnabled = it
                     },
+
                     onBack = {
                         currentScreen =
                             Screen.MENU
@@ -143,23 +188,35 @@ class MainActivity : ComponentActivity() {
             Screen.SETUP -> {
                 SetupGameScreen(
                     onStartGame = { players ->
+
                         gameState =
                             gameEngine.startGame(
                                 players
                             )
 
                         message = ""
-                        highlightedWinnerId = null
+
+                        highlightedWinnerId =
+                            null
+
                         visibleCenterPile =
                             emptyList()
 
-                        animateCenterCards = true
-                        finalResult = null
-                        isActionLocked = false
+                        animateCenterCards =
+                            true
+
+                        finalResult =
+                            null
+
+                        isActionLocked =
+                            false
+
+                        saveCurrentGame()
 
                         currentScreen =
                             Screen.GAME
                     },
+
                     onBack = {
                         currentScreen =
                             Screen.MENU
@@ -168,37 +225,51 @@ class MainActivity : ComponentActivity() {
             }
 
             Screen.GAME -> {
-                val state = gameState
+
+                val state =
+                    gameState
 
                 if (state != null) {
+
                     val playerId =
                         state.currentPlayer.id
 
                     GameScreen(
                         state = state,
+
                         visibleCenterPile =
                             visibleCenterPile,
+
                         animateCenterCards =
                             animateCenterCards,
-                        message = message,
+
+                        message =
+                            message,
+
                         highlightedWinnerId =
                             highlightedWinnerId,
+
                         onDrawCard = {
+
                             if (isActionLocked) {
                                 return@GameScreen
                             }
 
-                            isActionLocked = true
+                            isActionLocked =
+                                true
 
                             if (
                                 state.currentPlayer
                                     .remainingCards <= 0
                             ) {
-                                isActionLocked = false
+                                isActionLocked =
+                                    false
+
                                 return@GameScreen
                             }
 
                             try {
+
                                 gameEngine.playCard()
 
                                 gameState =
@@ -210,7 +281,10 @@ class MainActivity : ComponentActivity() {
                                         .centerPile
                                         .toList()
 
-                                animateCenterCards = true
+                                animateCenterCards =
+                                    true
+
+                                saveCurrentGame()
 
                                 val afterPlay =
                                     gameEngine.getState()
@@ -219,10 +293,14 @@ class MainActivity : ComponentActivity() {
                                     "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
 
                                 if (
-                                    !gameEngine.isRoundComplete()
+                                    !gameEngine
+                                        .isRoundComplete()
                                 ) {
+
                                     lifecycleScope.launch {
+
                                         delay(800)
+
                                         isActionLocked =
                                             false
                                     }
@@ -231,24 +309,31 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 lifecycleScope.launch {
+
                                     try {
+
                                         delay(900)
 
                                         animateCenterCards =
                                             false
 
                                         val winner =
-                                            gameEngine.resolveRound()
+                                            gameEngine
+                                                .resolveRound()
 
                                         val resolved =
-                                            gameEngine.getState()
+                                            gameEngine
+                                                .getState()
 
                                         gameState =
                                             resolved
 
+                                        saveCurrentGame()
+
                                         if (
                                             winner != null
                                         ) {
+
                                             highlightedWinnerId =
                                                 winner
 
@@ -273,7 +358,8 @@ class MainActivity : ComponentActivity() {
                                                 true
 
                                             val updated =
-                                                gameEngine.getState()
+                                                gameEngine
+                                                    .getState()
 
                                             gameState =
                                                 updated
@@ -281,15 +367,27 @@ class MainActivity : ComponentActivity() {
                                             if (
                                                 updated.gameOver
                                             ) {
+
                                                 finalResult =
                                                     GameResult.calculate(
                                                         updated
                                                     )
 
+                                                saveManager.delete()
+
+                                                hasSavedGame =
+                                                    false
+
                                                 currentScreen =
                                                     Screen.RESULT
+
+                                                isActionLocked =
+                                                    false
+
                                             } else {
-                                                message = ""
+
+                                                message =
+                                                    ""
 
                                                 currentScreen =
                                                     Screen.GAME
@@ -297,18 +395,24 @@ class MainActivity : ComponentActivity() {
                                                 isActionLocked =
                                                     false
                                             }
+
                                         } else {
+
                                             val tieState =
-                                                gameEngine.getState()
+                                                gameEngine
+                                                    .getState()
 
                                             gameState =
                                                 tieState
+
+                                            saveCurrentGame()
 
                                             message =
                                                 "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
 
                                             visibleCenterPile =
-                                                tieState.centerPile
+                                                tieState
+                                                    .centerPile
                                                     .toList()
 
                                             animateCenterCards =
@@ -316,7 +420,8 @@ class MainActivity : ComponentActivity() {
 
                                             delay(1000)
 
-                                            message = ""
+                                            message =
+                                                ""
 
                                             animateCenterCards =
                                                 true
@@ -327,28 +432,43 @@ class MainActivity : ComponentActivity() {
                                             isActionLocked =
                                                 false
                                         }
+
                                     } catch (_: Exception) {
+
                                         isActionLocked =
                                             false
                                     }
                                 }
+
                             } catch (_: Exception) {
+
                                 isActionLocked =
                                     false
                             }
                         },
+
                         onShuffle = {
+
                             if (isActionLocked) {
                                 return@GameScreen
                             }
 
-                            gameEngine.shuffleBalanceDeck()
+                            gameEngine
+                                .shuffleBalanceDeck()
+
+                            saveCurrentGame()
 
                             message =
                                 "کارت‌ها بر زده شدند! 🔀"
                         },
+
                         onBack = {
-                            isActionLocked = false
+
+                            saveCurrentGame()
+
+                            isActionLocked =
+                                false
+
                             currentScreen =
                                 Screen.MENU
                         }
@@ -357,10 +477,12 @@ class MainActivity : ComponentActivity() {
             }
 
             Screen.RESULT -> {
+
                 val result =
                     finalResult
 
                 if (result != null) {
+
                     val names =
                         gameState
                             ?.players
@@ -371,20 +493,145 @@ class MainActivity : ComponentActivity() {
 
                     ResultScreen(
                         result = result,
-                        playerNames = names,
+
+                        playerNames =
+                            names,
+
                         onNewGame = {
-                            isActionLocked = false
+
+                            isActionLocked =
+                                false
+
                             currentScreen =
                                 Screen.SETUP
                         },
+
                         onMenu = {
-                            isActionLocked = false
+
+                            isActionLocked =
+                                false
+
                             currentScreen =
                                 Screen.MENU
                         }
                     )
                 }
             }
+        }
+    }
+
+    private fun saveCurrentGame() {
+
+        try {
+
+            if (
+                gameEngineStateOrNull() == null
+            ) {
+                return
+            }
+
+            saveManager.save(
+                gameEngine.createSaveData()
+            )
+
+            hasSavedGame =
+                true
+
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun continueSavedGame() {
+
+        try {
+
+            val saveData =
+                saveManager.load()
+
+            if (saveData == null) {
+
+                hasSavedGame =
+                    false
+
+                return
+            }
+
+            gameState =
+                gameEngine.restoreFromSave(
+                    saveData
+                )
+
+            message = ""
+
+            highlightedWinnerId =
+                null
+
+            visibleCenterPile =
+                gameState
+                    ?.centerPile
+                    ?.toList()
+                    ?: emptyList()
+
+            animateCenterCards =
+                false
+
+            finalResult =
+                null
+
+            isActionLocked =
+                false
+
+            currentScreen =
+                if (
+                    gameState?.gameOver == true
+                ) {
+
+                    finalResult =
+                        GameResult.calculate(
+                            gameState!!
+                        )
+
+                    saveManager.delete()
+
+                    hasSavedGame =
+                        false
+
+                    Screen.RESULT
+
+                } else {
+
+                    hasSavedGame =
+                        true
+
+                    Screen.GAME
+                }
+
+        } catch (_: Exception) {
+
+            saveManager.delete()
+
+            hasSavedGame =
+                false
+
+            gameState =
+                null
+
+            message = ""
+
+            highlightedWinnerId =
+                null
+
+            visibleCenterPile =
+                emptyList()
+
+            finalResult =
+                null
+
+            isActionLocked =
+                false
+
+            currentScreen =
+                Screen.MENU
         }
     }
 

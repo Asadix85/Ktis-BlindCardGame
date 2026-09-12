@@ -6,14 +6,17 @@ import com.example.ktis.domain.model.GameState
 import com.example.ktis.domain.model.Player
 import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.domain.model.PlayerSetup
+import com.example.ktis.domain.model.Rank
+import com.example.ktis.domain.model.Suit
+import com.example.ktis.domain.save.CardSaveData
+import com.example.ktis.domain.save.GameSaveData
+import com.example.ktis.domain.save.PlayedCardSaveData
+import com.example.ktis.domain.save.PlayerSaveData
 
 class GameEngine {
 
     private var state: GameState? = null
 
-    /*
-     * دسته پشتیبان مخفی برای بالانس تعداد کارت‌ها
-     */
     private var balanceDeck = Deck(1)
 
     fun startGame(
@@ -34,19 +37,8 @@ class GameEngine {
             "Deck count must be at least 1."
         }
 
-        /*
-         * نام بازیکنان را تمیز می‌کنیم
-         * و صندلی را کاملاً خودکار تعیین می‌کنیم.
-         *
-         * seat:
-         * 0 = نقطه شروع / پایین صفحه
-         * 1 = بازیکن بعدی در جهت ساعت‌گرد
-         * 2 = بازیکن بعدی
-         * ...
-         */
         val setups =
             playersSetup.mapIndexed { index, player ->
-
                 PlayerSetup(
                     name = player.name.trim(),
                     seat = index
@@ -68,28 +60,14 @@ class GameEngine {
             "Player names must be unique."
         }
 
-        /*
-         * دسته اصلی بازی
-         */
-        val deck =
-            Deck(deckCount)
-
+        val deck = Deck(deckCount)
         deck.shuffle()
 
-        /*
-         * دسته پشتیبان کاملاً جدا
-         */
-        balanceDeck =
-            Deck(1)
-
+        balanceDeck = Deck(1)
         balanceDeck.shuffle()
 
-        /*
-         * ساخت بازیکنان
-         */
         val players =
             setups.mapIndexed { index, setup ->
-
                 Player(
                     id = index,
                     name = setup.name,
@@ -97,49 +75,33 @@ class GameEngine {
                 )
             }
 
-        /*
-         * تقسیم کارت‌ها
-         */
         dealCards(
             deck = deck,
             players = players
         )
 
-        /*
-         * بازیکن اول همیشه شروع می‌کند.
-         * seat = 0
-         * یعنی نقطه پایین صفحه / دید اولیه
-         */
         val startingPlayerIndex = 0
 
         state =
             GameState(
                 players = players,
-                currentPlayerIndex =
-                    startingPlayerIndex,
-
+                currentPlayerIndex = startingPlayerIndex,
                 roundPlayerIds =
                     players.map {
                         it.id
                     },
-
-                roundPlayedPlayerIds =
-                    emptyList()
+                roundPlayedPlayerIds = emptyList()
             )
 
         return state!!
     }
 
-    /*
-     * نسخه ساده برای سازگاری با کدهای قبلی
-     */
     fun startGame(
         playerNames: List<String>
     ): GameState {
 
         val setups =
             playerNames.map { name ->
-
                 PlayerSetup(
                     name = name.trim(),
                     seat = 0
@@ -149,14 +111,10 @@ class GameEngine {
         return startGame(setups)
     }
 
-    /*
-     * تقسیم مساوی کارت‌ها
-     */
     private fun dealCards(
         deck: Deck,
         players: List<Player>
     ) {
-
         if (players.isEmpty()) {
             return
         }
@@ -166,9 +124,7 @@ class GameEngine {
                     players.size
 
         repeat(cardsPerPlayer) {
-
             players.forEach { player ->
-
                 val card =
                     deck.draw()
                         ?: return
@@ -178,9 +134,6 @@ class GameEngine {
         }
     }
 
-    /*
-     * انداختن کارت
-     */
     fun playCard(): Card {
 
         val current =
@@ -212,17 +165,11 @@ class GameEngine {
             "Player has no cards."
         }
 
-        /*
-         * برداشتن آخرین کارت دست
-         */
         val card =
             player.drawPile.removeAt(
                 player.drawPile.lastIndex
             )
 
-        /*
-         * قرار دادن کارت روی زمین
-         */
         current.centerPile.add(
             PlayedCard(
                 playerId = player.id,
@@ -241,9 +188,6 @@ class GameEngine {
 
         if (roundComplete) {
 
-            /*
-             * همه بازیکنان فعال کارت انداختند
-             */
             state =
                 current.copy(
                     roundPlayedPlayerIds =
@@ -252,16 +196,12 @@ class GameEngine {
 
         } else {
 
-            /*
-             * رفتن به بازیکن بعدی
-             */
             state =
                 current.copy(
                     currentPlayerIndex =
                         nextActivePlayerIndex(
                             current
                         ),
-
                     roundPlayedPlayerIds =
                         playedPlayers
                 )
@@ -270,9 +210,6 @@ class GameEngine {
         return card
     }
 
-    /*
-     * آیا دست کامل شده؟
-     */
     fun isRoundComplete(): Boolean {
 
         val current =
@@ -283,9 +220,6 @@ class GameEngine {
         }
     }
 
-    /*
-     * مشخص کردن برنده دست
-     */
     fun resolveRound(): Int? {
 
         val current =
@@ -294,9 +228,6 @@ class GameEngine {
         val activePlayers =
             current.roundPlayerIds.toSet()
 
-        /*
-         * هنوز همه کارت نینداخته‌اند
-         */
         if (
             !activePlayers.all {
                 it in current.roundPlayedPlayerIds
@@ -305,12 +236,8 @@ class GameEngine {
             return null
         }
 
-        /*
-         * آخرین کارت هر بازیکن فعال
-         */
         val latestCards =
             activePlayers.mapNotNull { playerId ->
-
                 current.centerPile
                     .lastOrNull {
                         it.playerId == playerId
@@ -327,17 +254,11 @@ class GameEngine {
             return null
         }
 
-        /*
-         * پیدا کردن بالاترین کارت
-         */
         val highest =
             GameRules.highestPlayers(
                 latestCards
             )
 
-        /*
-         * مساوی
-         */
         if (highest.size > 1) {
 
             val firstTiedIndex =
@@ -349,13 +270,10 @@ class GameEngine {
                 current.copy(
                     tiedPlayerIds =
                         highest,
-
                     roundPlayerIds =
                         highest,
-
                     roundPlayedPlayerIds =
                         emptyList(),
-
                     currentPlayerIndex =
                         firstTiedIndex
                 )
@@ -363,9 +281,6 @@ class GameEngine {
             return null
         }
 
-        /*
-         * برنده مشخص شده
-         */
         val winnerId =
             highest.first()
 
@@ -374,30 +289,16 @@ class GameEngine {
                 it.id == winnerId
             }
 
-        /*
-         * تمام کارت‌های روی زمین
-         * به برنده داده می‌شوند
-         */
         winner.collectedCards.addAll(
             current.centerPile.map {
                 it.card
             }
         )
 
-        /*
-         * زمین پاک می‌شود
-         */
         current.centerPile.clear()
 
-        /*
-         * بالانس تعداد کارت‌ها
-         */
         balancePlayers()
 
-        /*
-         * اگر هیچ بازیکنی کارت نداشته باشد
-         * بازی تمام شده
-         */
         val gameOver =
             current.players.all {
                 it.drawPile.isEmpty()
@@ -405,7 +306,6 @@ class GameEngine {
 
         state =
             current.copy(
-
                 currentPlayerIndex =
                     if (gameOver) {
                         current.currentPlayerIndex
@@ -415,21 +315,16 @@ class GameEngine {
                             winnerId
                         )
                     },
-
                 roundNumber =
                     current.roundNumber + 1,
-
                 tiedPlayerIds =
                     emptyList(),
-
                 roundPlayerIds =
                     current.players.map {
                         it.id
                     },
-
                 roundPlayedPlayerIds =
                     emptyList(),
-
                 gameOver =
                     gameOver
             )
@@ -437,9 +332,6 @@ class GameEngine {
         return winnerId
     }
 
-    /*
-     * بالانس تعداد کارت بازیکنان
-     */
     private fun balancePlayers() {
 
         val current =
@@ -454,10 +346,6 @@ class GameEngine {
                 it.drawPile.size
             }
 
-        /*
-         * پرتکرارترین تعداد کارت
-         * به عنوان مقدار هدف انتخاب می‌شود.
-         */
         val target =
             counts
                 .groupingBy {
@@ -477,10 +365,6 @@ class GameEngine {
                 .first()
                 .key
 
-        /*
-         * کارت اضافه بازیکن‌ها
-         * وارد دسته پشتیبان می‌شود.
-         */
         current.players.forEach { player ->
 
             while (
@@ -496,10 +380,6 @@ class GameEngine {
             }
         }
 
-        /*
-         * بازیکن‌هایی که کارت کمتری دارند
-         * از دسته پشتیبان کارت می‌گیرند.
-         */
         current.players.forEach { player ->
 
             while (
@@ -516,9 +396,6 @@ class GameEngine {
         }
     }
 
-    /*
-     * بر زدن دسته پشتیبان
-     */
     fun shuffleBalanceDeck() {
         balanceDeck.shuffle()
     }
@@ -531,12 +408,127 @@ class GameEngine {
         return requireState()
     }
 
-    /*
-     * رفتن به بازیکن فعال بعدی
-     *
-     * چون seatها به ترتیب 0..n-1 هستند،
-     * این ترتیب همان حرکت ساعت‌گرد است.
-     */
+    fun createSaveData(): GameSaveData {
+
+        val current =
+            requireState()
+
+        return GameSaveData(
+            players =
+                current.players.map { player ->
+                    PlayerSaveData(
+                        id = player.id,
+                        name = player.name,
+                        seat = player.seat,
+                        drawPile =
+                            player.drawPile.map {
+                                it.toSaveData()
+                            },
+                        collectedCards =
+                            player.collectedCards.map {
+                                it.toSaveData()
+                            }
+                    )
+                },
+            currentPlayerIndex =
+                current.currentPlayerIndex,
+            centerPile =
+                current.centerPile.map {
+                    PlayedCardSaveData(
+                        playerId = it.playerId,
+                        card = it.card.toSaveData()
+                    )
+                },
+            balanceDeck =
+                balanceDeck.getCards().map {
+                    it.toSaveData()
+                },
+            roundNumber =
+                current.roundNumber,
+            gameOver =
+                current.gameOver,
+            tiedPlayerIds =
+                current.tiedPlayerIds,
+            roundPlayerIds =
+                current.roundPlayerIds,
+            roundPlayedPlayerIds =
+                current.roundPlayedPlayerIds
+        )
+    }
+
+    fun restoreFromSave(
+        saveData: GameSaveData
+    ): GameState {
+
+        require(saveData.players.size >= 2) {
+            "A saved game must have at least 2 players."
+        }
+
+        require(saveData.players.size <= 8) {
+            "A saved game cannot have more than 8 players."
+        }
+
+        val players =
+            saveData.players.map { savedPlayer ->
+
+                Player(
+                    id = savedPlayer.id,
+                    name = savedPlayer.name,
+                    seat = savedPlayer.seat,
+                    drawPile =
+                        savedPlayer.drawPile
+                            .map {
+                                it.toCard()
+                            }
+                            .toMutableList(),
+                    collectedCards =
+                        savedPlayer.collectedCards
+                            .map {
+                                it.toCard()
+                            }
+                            .toMutableList()
+                )
+            }
+
+        val centerPile =
+            saveData.centerPile
+                .map {
+                    PlayedCard(
+                        playerId = it.playerId,
+                        card = it.card.toCard()
+                    )
+                }
+                .toMutableList()
+
+        balanceDeck = Deck(1)
+
+        balanceDeck.replaceCards(
+            saveData.balanceDeck.map {
+                it.toCard()
+            }
+        )
+
+        state =
+            GameState(
+                players = players,
+                currentPlayerIndex =
+                    saveData.currentPlayerIndex,
+                centerPile = centerPile,
+                roundNumber =
+                    saveData.roundNumber,
+                gameOver =
+                    saveData.gameOver,
+                tiedPlayerIds =
+                    saveData.tiedPlayerIds,
+                roundPlayerIds =
+                    saveData.roundPlayerIds,
+                roundPlayedPlayerIds =
+                    saveData.roundPlayedPlayerIds
+            )
+
+        return state!!
+    }
+
     private fun nextActivePlayerIndex(
         current: GameState
     ): Int {
@@ -559,10 +551,6 @@ class GameEngine {
         return index
     }
 
-    /*
-     * بعد از بردن یک دست،
-     * بازیکن بعدی برنده شروع می‌کند.
-     */
     private fun nextPlayerAfter(
         current: GameState,
         playerId: Int
@@ -615,13 +603,41 @@ class GameEngine {
             )
 
             return when (playerCount) {
-
                 in 2..4 -> 1
-
                 in 5..8 -> 2
-
                 else -> 3
             }
         }
     }
+}
+
+private fun Card.toSaveData(): CardSaveData {
+    return CardSaveData(
+        suit = suit.name,
+        rank = rank.name
+    )
+}
+
+private fun CardSaveData.toCard(): Card {
+
+    val suit =
+        Suit.entries.firstOrNull {
+            it.name == this.suit
+        }
+            ?: error(
+                "Invalid saved suit: $suit"
+            )
+
+    val rank =
+        Rank.entries.firstOrNull {
+            it.name == this.rank
+        }
+            ?: error(
+                "Invalid saved rank: $rank"
+            )
+
+    return Card(
+        suit = suit,
+        rank = rank
+    )
 }

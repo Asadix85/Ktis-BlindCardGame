@@ -45,4 +45,13 @@ class Deck(
     fun remainingCards(): Int {
         return cards.size
     }
+
+    fun getCards(): List<Card> {
+        return cards.toList()
+    }
+
+    fun replaceCards(newCards: List<Card>) {
+        cards.clear()
+        cards.addAll(newCards)
+    }
 }

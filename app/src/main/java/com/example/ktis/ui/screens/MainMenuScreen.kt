@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -30,7 +31,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.layout.ContentScale
 import com.example.ktis.R
 
 private val NazaninFont = FontFamily(
@@ -46,7 +46,8 @@ fun MainMenuScreen(
     onStart: () -> Unit,
     onContinue: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onTutorial: () -> Unit = {}
+    onTutorial: () -> Unit = {},
+    continueEnabled: Boolean = false
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -113,7 +114,7 @@ fun MainMenuScreen(
                 WoodenMenuButton(
                     text = "ادامه بازی",
                     onClick = onContinue,
-                    enabled = false
+                    enabled = continueEnabled
                 )
 
                 WoodenMenuButton(
