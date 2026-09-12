@@ -9,7 +9,8 @@ data class GameSaveData(
     val gameOver: Boolean,
     val tiedPlayerIds: List<Int>,
     val roundPlayerIds: List<Int>,
-    val roundPlayedPlayerIds: List<Int>
+    val roundPlayedPlayerIds: List<Int>,
+    val playerStats: List<PlayerStatsSaveData> = emptyList()
 )
 
 data class PlayerSaveData(
@@ -28,4 +29,10 @@ data class PlayedCardSaveData(
 data class CardSaveData(
     val suit: String,
     val rank: String
+)
+
+data class PlayerStatsSaveData(
+    val playerId: Int,
+    val roundWins: Int,
+    val tieCount: Int
 )

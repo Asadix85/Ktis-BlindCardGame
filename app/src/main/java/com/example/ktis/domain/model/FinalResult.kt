@@ -4,5 +4,6 @@ data class FinalResult(
     val winnerId: Int,
     val winnerName: String,
     val scores: Map<Int, Int>,
-    val isTieBroken: Boolean
+    val isTieBroken: Boolean,
+    val playerStats: Map<Int, PlayerStats> = emptyMap()
 )

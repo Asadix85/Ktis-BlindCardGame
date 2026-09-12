@@ -4,14 +4,16 @@ import com.example.ktis.domain.model.Card
 import com.example.ktis.domain.model.Deck
 import com.example.ktis.domain.model.GameState
 import com.example.ktis.domain.model.Player
-import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.domain.model.PlayerSetup
+import com.example.ktis.domain.model.PlayerStats
+import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.domain.model.Rank
 import com.example.ktis.domain.model.Suit
 import com.example.ktis.domain.save.CardSaveData
 import com.example.ktis.domain.save.GameSaveData
 import com.example.ktis.domain.save.PlayedCardSaveData
 import com.example.ktis.domain.save.PlayerSaveData
+import com.example.ktis.domain.save.PlayerStatsSaveData
 
 class GameEngine {
 
@@ -82,15 +84,24 @@ class GameEngine {
 
         val startingPlayerIndex = 0
 
+        val initialStats =
+            players.associate { player ->
+                player.id to PlayerStats()
+            }
+
         state =
             GameState(
                 players = players,
-                currentPlayerIndex = startingPlayerIndex,
+                currentPlayerIndex =
+                    startingPlayerIndex,
                 roundPlayerIds =
                     players.map {
                         it.id
                     },
-                roundPlayedPlayerIds = emptyList()
+                roundPlayedPlayerIds =
+                    emptyList(),
+                playerStats =
+                    initialStats
             )
 
         return state!!
@@ -124,7 +135,9 @@ class GameEngine {
                     players.size
 
         repeat(cardsPerPlayer) {
+
             players.forEach { player ->
+
                 val card =
                     deck.draw()
                         ?: return
@@ -238,6 +251,7 @@ class GameEngine {
 
         val latestCards =
             activePlayers.mapNotNull { playerId ->
+
                 current.centerPile
                     .lastOrNull {
                         it.playerId == playerId
@@ -261,6 +275,23 @@ class GameEngine {
 
         if (highest.size > 1) {
 
+            val updatedStats =
+                current.playerStats
+                    .toMutableMap()
+
+            highest.forEach { playerId ->
+
+                val oldStats =
+                    updatedStats[playerId]
+                        ?: PlayerStats()
+
+                updatedStats[playerId] =
+                    oldStats.copy(
+                        tieCount =
+                            oldStats.tieCount + 1
+                    )
+            }
+
             val firstTiedIndex =
                 current.players.indexOfFirst {
                     it.id == highest.first()
@@ -270,12 +301,18 @@ class GameEngine {
                 current.copy(
                     tiedPlayerIds =
                         highest,
+
                     roundPlayerIds =
                         highest,
+
                     roundPlayedPlayerIds =
                         emptyList(),
+
                     currentPlayerIndex =
-                        firstTiedIndex
+                        firstTiedIndex,
+
+                    playerStats =
+                        updatedStats
                 )
 
             return null
@@ -297,6 +334,20 @@ class GameEngine {
 
         current.centerPile.clear()
 
+        val updatedStats =
+            current.playerStats
+                .toMutableMap()
+
+        val oldWinnerStats =
+            updatedStats[winnerId]
+                ?: PlayerStats()
+
+        updatedStats[winnerId] =
+            oldWinnerStats.copy(
+                roundWins =
+                    oldWinnerStats.roundWins + 1
+            )
+
         balancePlayers()
 
         val gameOver =
@@ -315,18 +366,26 @@ class GameEngine {
                             winnerId
                         )
                     },
+
                 roundNumber =
                     current.roundNumber + 1,
+
                 tiedPlayerIds =
                     emptyList(),
+
                 roundPlayerIds =
                     current.players.map {
                         it.id
                     },
+
                 roundPlayedPlayerIds =
                     emptyList(),
+
                 gameOver =
-                    gameOver
+                    gameOver,
+
+                playerStats =
+                    updatedStats
             )
 
         return winnerId
@@ -414,45 +473,79 @@ class GameEngine {
             requireState()
 
         return GameSaveData(
+
             players =
                 current.players.map { player ->
+
                     PlayerSaveData(
                         id = player.id,
                         name = player.name,
                         seat = player.seat,
+
                         drawPile =
                             player.drawPile.map {
                                 it.toSaveData()
                             },
+
                         collectedCards =
                             player.collectedCards.map {
                                 it.toSaveData()
                             }
                     )
                 },
+
             currentPlayerIndex =
                 current.currentPlayerIndex,
+
             centerPile =
                 current.centerPile.map {
+
                     PlayedCardSaveData(
-                        playerId = it.playerId,
-                        card = it.card.toSaveData()
+                        playerId =
+                            it.playerId,
+
+                        card =
+                            it.card.toSaveData()
                     )
                 },
+
             balanceDeck =
-                balanceDeck.getCards().map {
-                    it.toSaveData()
-                },
+                balanceDeck
+                    .getCards()
+                    .map {
+                        it.toSaveData()
+                    },
+
             roundNumber =
                 current.roundNumber,
+
             gameOver =
                 current.gameOver,
+
             tiedPlayerIds =
                 current.tiedPlayerIds,
+
             roundPlayerIds =
                 current.roundPlayerIds,
+
             roundPlayedPlayerIds =
-                current.roundPlayedPlayerIds
+                current.roundPlayedPlayerIds,
+
+            playerStats =
+                current.playerStats.map {
+                        (playerId, stats) ->
+
+                    PlayerStatsSaveData(
+                        playerId =
+                            playerId,
+
+                        roundWins =
+                            stats.roundWins,
+
+                        tieCount =
+                            stats.tieCount
+                    )
+                }
         )
     }
 
@@ -472,15 +565,22 @@ class GameEngine {
             saveData.players.map { savedPlayer ->
 
                 Player(
-                    id = savedPlayer.id,
-                    name = savedPlayer.name,
-                    seat = savedPlayer.seat,
+                    id =
+                        savedPlayer.id,
+
+                    name =
+                        savedPlayer.name,
+
+                    seat =
+                        savedPlayer.seat,
+
                     drawPile =
                         savedPlayer.drawPile
                             .map {
                                 it.toCard()
                             }
                             .toMutableList(),
+
                     collectedCards =
                         savedPlayer.collectedCards
                             .map {
@@ -494,8 +594,11 @@ class GameEngine {
             saveData.centerPile
                 .map {
                     PlayedCard(
-                        playerId = it.playerId,
-                        card = it.card.toCard()
+                        playerId =
+                            it.playerId,
+
+                        card =
+                            it.card.toCard()
                     )
                 }
                 .toMutableList()
@@ -508,22 +611,58 @@ class GameEngine {
             }
         )
 
+        val loadedStats =
+            saveData.playerStats
+                .associate {
+                    it.playerId to
+                            PlayerStats(
+                                roundWins =
+                                    it.roundWins,
+
+                                tieCount =
+                                    it.tieCount
+                            )
+                }
+
+        val playerStats =
+            players.associate { player ->
+
+                player.id to
+                        (
+                                loadedStats[player.id]
+                                    ?: PlayerStats()
+                                )
+            }
+
         state =
             GameState(
-                players = players,
+
+                players =
+                    players,
+
                 currentPlayerIndex =
                     saveData.currentPlayerIndex,
-                centerPile = centerPile,
+
+                centerPile =
+                    centerPile,
+
                 roundNumber =
                     saveData.roundNumber,
+
                 gameOver =
                     saveData.gameOver,
+
                 tiedPlayerIds =
                     saveData.tiedPlayerIds,
+
                 roundPlayerIds =
                     saveData.roundPlayerIds,
+
                 roundPlayedPlayerIds =
-                    saveData.roundPlayedPlayerIds
+                    saveData.roundPlayedPlayerIds,
+
+                playerStats =
+                    playerStats
             )
 
         return state!!
@@ -612,6 +751,7 @@ class GameEngine {
 }
 
 private fun Card.toSaveData(): CardSaveData {
+
     return CardSaveData(
         suit = suit.name,
         rank = rank.name

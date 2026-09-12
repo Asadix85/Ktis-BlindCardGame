@@ -1,7 +1,11 @@
 package com.example.ktis.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,11 +20,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -35,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ktis.R
 import com.example.ktis.domain.model.FinalResult
+import com.example.ktis.domain.model.PlayerStats
+import kotlinx.coroutines.delay
 
 private val NazaninFont = FontFamily(
     Font(R.font.nazanin, FontWeight.Normal)
@@ -53,11 +65,37 @@ fun ResultScreen(
     onNewGame: () -> Unit,
     onMenu: () -> Unit
 ) {
+    var showContent by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(Unit) {
+        delay(150)
+        showContent = true
+    }
+
     val sortedScores =
         result.scores.entries
-            .sortedByDescending {
-                it.value
-            }
+            .sortedWith(
+                compareByDescending<Map.Entry<Int, Int>> {
+                    it.value
+                }.thenBy {
+                    it.key
+                }
+            )
+
+    val totalCards =
+        result.scores.values.sum()
+
+    val winnerScore =
+        result.scores[result.winnerId] ?: 0
+
+    val winnerPercentage =
+        if (totalCards > 0) {
+            (winnerScore * 100f) / totalCards
+        } else {
+            0f
+        }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -83,59 +121,100 @@ fun ResultScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = 32.dp,
-                    vertical = 28.dp
+                    horizontal = 28.dp,
+                    vertical = 22.dp
                 ),
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "🏆",
-                fontSize = 64.sp
-            )
 
-            Spacer(
-                modifier = Modifier.height(2.dp)
-            )
+            AnimatedVisibility(
+                visible = showContent,
+                enter =
+                    fadeIn(
+                        animationSpec = tween(500)
+                    ) +
+                            slideInVertically(
+                                initialOffsetY = { -40 },
+                                animationSpec = tween(
+                                    550,
+                                    easing =
+                                        FastOutSlowInEasing
+                                )
+                            )
+            ) {
+                Column(
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "🏆",
+                        fontSize = 58.sp
+                    )
 
-            Text(
-                text = "برنده بازی",
-                color = Caramel,
-                fontFamily = NazaninFont,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
-            )
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
 
-            Spacer(
-                modifier = Modifier.height(4.dp)
-            )
+                    Text(
+                        text = "برنده بازی",
+                        color = Caramel,
+                        fontFamily = NazaninFont,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            Text(
-                text = result.winnerName,
-                color = Gold,
-                fontFamily = NazaninFont,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
 
-            if (result.isTieBroken) {
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
+                    Text(
+                        text = result.winnerName,
+                        color = Gold,
+                        fontFamily = NazaninFont,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
 
-                Text(
-                    text =
-                        "🎲 برنده با قرعه‌ی نهایی مشخص شد",
-                    color = Caramel,
-                    fontFamily = NazaninFont,
-                    fontSize = 17.sp,
-                    textAlign = TextAlign.Center
-                )
+                    Spacer(
+                        modifier = Modifier.height(5.dp)
+                    )
+
+                    Text(
+                        text =
+                            "$winnerScore کارت  •  ${
+                                String.format(
+                                    "%.1f",
+                                    winnerPercentage
+                                )
+                            }٪ از کل کارت‌ها",
+                        color = Caramel,
+                        fontFamily = NazaninFont,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    if (result.isTieBroken) {
+                        Spacer(
+                            modifier = Modifier.height(5.dp)
+                        )
+
+                        Text(
+                            text =
+                                "🎲 برنده با قرعه‌ی نهایی مشخص شد",
+                            color = Caramel,
+                            fontFamily = NazaninFont,
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
 
             Spacer(
-                modifier = Modifier.height(22.dp)
+                modifier = Modifier.height(16.dp)
             )
 
             Text(
@@ -147,43 +226,79 @@ fun ResultScreen(
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier = Modifier.height(6.dp)
+            )
+
+            Text(
+                text = "کل کارت‌های جمع‌شده: $totalCards",
+                color = Caramel.copy(alpha = 0.82f),
+                fontFamily = NazaninFont,
+                fontSize = 15.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(
+                        rememberScrollState()
+                    ),
+                verticalArrangement =
+                    Arrangement.spacedBy(2.dp)
             ) {
                 sortedScores.forEachIndexed {
                         index,
                         entry
                     ->
+
                     val name =
                         playerNames[entry.key]
                             ?: "بازیکن ${entry.key + 1}"
+
+                    val percentage =
+                        if (totalCards > 0) {
+                            (entry.value * 100f) /
+                                    totalCards
+                        } else {
+                            0f
+                        }
+
+                    val stats =
+                        result.playerStats[entry.key]
+                            ?: PlayerStats()
 
                     ScoreRow(
                         rank = index + 1,
                         name = name,
                         score = entry.value,
+                        percentage = percentage,
+                        roundWins = stats.roundWins,
+                        tieCount = stats.tieCount,
                         isWinner =
                             entry.key ==
-                                    result.winnerId
+                                    result.winnerId,
+                        visible = showContent,
+                        animationDelay =
+                            100 + (index * 80)
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(12.dp)
             )
 
             WoodenResultButton(
-                text = "🎴 بازی جدید",
+                text = "بازی جدید",
                 onClick = onNewGame
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier = Modifier.height(9.dp)
             )
 
             WoodenResultButton(
@@ -199,79 +314,251 @@ private fun ScoreRow(
     rank: Int,
     name: String,
     score: Int,
-    isWinner: Boolean
+    percentage: Float,
+    roundWins: Int,
+    tieCount: Int,
+    isWinner: Boolean,
+    visible: Boolean,
+    animationDelay: Int
 ) {
-    val backgroundColor =
-        if (isWinner) {
-            Caramel.copy(alpha = 0.95f)
-        } else {
-            WoodMedium.copy(alpha = 0.94f)
-        }
+    var showRow by remember {
+        mutableStateOf(false)
+    }
 
-    val textColor =
-        if (isWinner) {
-            WoodDark
-        } else {
-            Caramel
+    LaunchedEffect(visible) {
+        if (visible) {
+            delay(animationDelay.toLong())
+            showRow = true
         }
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                vertical = 4.dp
-            )
-            .background(
-                backgroundColor,
-                RoundedCornerShape(10.dp)
-            )
-            .then(
-                if (isWinner) {
-                    Modifier.background(
-                        Caramel,
-                        RoundedCornerShape(10.dp)
+    AnimatedVisibility(
+        visible = showRow,
+        enter =
+            fadeIn(
+                animationSpec = tween(350)
+            ) +
+                    slideInVertically(
+                        initialOffsetY = { 25 },
+                        animationSpec = tween(
+                            400,
+                            easing =
+                                FastOutSlowInEasing
+                        )
                     )
-                } else {
-                    Modifier
-                }
-            )
-            .padding(
-                horizontal = 16.dp,
-                vertical = 13.dp
-            )
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-            Text(
-                text = "$rank. $name",
-                color = textColor,
-                fontFamily = NazaninFont,
-                fontSize = 20.sp,
-                fontWeight =
-                    if (isWinner) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
-                    }
-            )
+        val backgroundColor =
+            if (isWinner) {
+                Caramel.copy(alpha = 0.96f)
+            } else {
+                WoodMedium.copy(alpha = 0.94f)
+            }
 
-            Text(
-                text = "$score کارت",
-                color = textColor,
-                fontFamily = NazaninFont,
-                fontSize = 19.sp,
-                fontWeight =
-                    if (isWinner) {
-                        FontWeight.Bold
-                    } else {
-                        FontWeight.Normal
+        val textColor =
+            if (isWinner) {
+                WoodDark
+            } else {
+                Caramel
+            }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 3.dp
+                )
+                .background(
+                    backgroundColor,
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(
+                    horizontal = 14.dp,
+                    vertical = 10.dp
+                )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text =
+                                when (rank) {
+                                    1 -> "🥇"
+                                    2 -> "🥈"
+                                    3 -> "🥉"
+                                    else -> "$rank."
+                                },
+                            color = textColor,
+                            fontSize =
+                                if (rank <= 3) {
+                                    20.sp
+                                } else {
+                                    18.sp
+                                },
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(
+                                8.dp
+                            )
+                        )
+
+                        Text(
+                            text = name,
+                            color = textColor,
+                            fontFamily = NazaninFont,
+                            fontSize = 20.sp,
+                            fontWeight =
+                                if (isWinner) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Normal
+                                }
+                        )
                     }
-            )
+
+                    Text(
+                        text = "$score کارت",
+                        color = textColor,
+                        fontFamily = NazaninFont,
+                        fontSize = 18.sp,
+                        fontWeight =
+                            if (isWinner) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            }
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(6.dp)
+                )
+
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(7.dp)
+                            .background(
+                                if (isWinner) {
+                                    WoodDark.copy(
+                                        alpha = 0.25f
+                                    )
+                                } else {
+                                    WoodDark.copy(
+                                        alpha = 0.45f
+                                    )
+                                },
+                                RoundedCornerShape(8.dp)
+                            )
+                    ) {
+                        val progress by
+                        animateFloatAsState(
+                            targetValue =
+                                percentage / 100f,
+                            animationSpec =
+                                tween(
+                                    durationMillis = 700,
+                                    delayMillis = 100,
+                                    easing =
+                                        FastOutSlowInEasing
+                                ),
+                            label =
+                                "score_progress"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(
+                                    progress
+                                )
+                                .height(7.dp)
+                                .background(
+                                    if (isWinner) {
+                                        Gold
+                                    } else {
+                                        Caramel
+                                    },
+                                    RoundedCornerShape(
+                                        8.dp
+                                    )
+                                )
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.width(10.dp)
+                    )
+
+                    Text(
+                        text =
+                            "${String.format("%.1f", percentage)}٪",
+                        color = textColor,
+                        fontFamily = NazaninFont,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(7.dp)
+                )
+
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceEvenly,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🏆 $roundWins برد",
+                        color = textColor,
+                        fontFamily = NazaninFont,
+                        fontSize = 15.sp,
+                        fontWeight =
+                            if (isWinner) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            }
+                    )
+
+                    Text(
+                        text = "🤝 $tieCount تساوی",
+                        color = textColor,
+                        fontFamily = NazaninFont,
+                        fontSize = 15.sp,
+                        fontWeight =
+                            if (isWinner) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            }
+                    )
+                }
+            }
         }
     }
 }
@@ -305,7 +592,7 @@ private fun WoodenResultButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(58.dp)
+            .height(56.dp)
             .scale(scale)
             .background(
                 WoodMedium

@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.fontResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -44,10 +43,8 @@ private val WoodMedium = Color(0xFF6B3F22)
 @Composable
 fun MainMenuScreen(
     onStart: () -> Unit,
-    onContinue: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onTutorial: () -> Unit = {},
-    continueEnabled: Boolean = false
+    onTutorial: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -76,7 +73,8 @@ fun MainMenuScreen(
                     horizontal = 32.dp,
                     vertical = 28.dp
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
             Text(
                 text = "KTIS",
@@ -103,18 +101,14 @@ fun MainMenuScreen(
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalAlignment =
+                    Alignment.CenterHorizontally,
+                verticalArrangement =
+                    Arrangement.spacedBy(16.dp)
             ) {
                 WoodenMenuButton(
                     text = "شروع بازی",
                     onClick = onStart
-                )
-
-                WoodenMenuButton(
-                    text = "ادامه بازی",
-                    onClick = onContinue,
-                    enabled = continueEnabled
                 )
 
                 WoodenMenuButton(
@@ -141,14 +135,21 @@ private fun WoodenMenuButton(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val isPressed by
+    interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.96f else 1f,
+        targetValue =
+            if (isPressed && enabled) {
+                0.96f
+            } else {
+                1f
+            },
         animationSpec = tween(80),
         label = "button_press"
     )
@@ -159,15 +160,17 @@ private fun WoodenMenuButton(
             .height(58.dp)
             .scale(scale)
             .background(
-                color = if (enabled) {
-                    WoodMedium
-                } else {
-                    WoodDark.copy(alpha = 0.55f)
-                }
+                color =
+                    if (enabled) {
+                        WoodMedium
+                    } else {
+                        WoodDark.copy(alpha = 0.55f)
+                    }
             )
             .clickable(
                 enabled = enabled,
-                interactionSource = interactionSource,
+                interactionSource =
+                    interactionSource,
                 indication = null,
                 onClick = onClick
             ),
@@ -175,11 +178,12 @@ private fun WoodenMenuButton(
     ) {
         Text(
             text = text,
-            color = if (enabled) {
-                Caramel
-            } else {
-                Caramel.copy(alpha = 0.35f)
-            },
+            color =
+                if (enabled) {
+                    Caramel
+                } else {
+                    Caramel.copy(alpha = 0.35f)
+                },
             fontFamily = NazaninFont,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold

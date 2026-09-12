@@ -3,6 +3,7 @@ package com.example.ktis.domain.engine
 import com.example.ktis.domain.model.FinalResult
 import com.example.ktis.domain.model.GameState
 import com.example.ktis.domain.model.Player
+import com.example.ktis.domain.model.PlayerStats
 
 object GameResult {
 
@@ -19,6 +20,16 @@ object GameResult {
                 it.id to it.score
             }
 
+        val playerStats =
+            state.players.associate { player ->
+
+                player.id to
+                        (
+                                state.playerStats[player.id]
+                                    ?: PlayerStats()
+                                )
+            }
+
         val highestScore =
             scores.values.maxOrNull()
                 ?: error("No players.")
@@ -28,9 +39,6 @@ object GameResult {
                 it.score == highestScore
             }
 
-        /*
-         * فقط یک برنده
-         */
         if (tiedPlayers.size == 1) {
 
             val winner =
@@ -46,32 +54,27 @@ object GameResult {
                 scores =
                     scores,
 
+                playerStats =
+                    playerStats,
+
                 isTieBroken =
                     false
             )
         }
 
-        /*
-         * مساوی در امتیاز نهایی
-         *
-         * کارت‌های جمع‌شده‌ی بازیکنان مساوی
-         * وارد قرعه‌ی نهایی می‌شوند.
-         */
         return breakFinalTie(
             tiedPlayers = tiedPlayers,
-            scores = scores
+            scores = scores,
+            playerStats = playerStats
         )
     }
 
     private fun breakFinalTie(
         tiedPlayers: List<Player>,
-        scores: Map<Int, Int>
+        scores: Map<Int, Int>,
+        playerStats: Map<Int, PlayerStats>
     ): FinalResult {
 
-        /*
-         * همه‌ی کارت‌های جمع‌شده‌ی بازیکنان مساوی
-         * وارد یک Pool می‌شوند.
-         */
         val pool =
             tiedPlayers
                 .flatMap {
@@ -79,13 +82,6 @@ object GameResult {
                 }
                 .shuffled()
 
-        /*
-         * اگر به هر دلیل کارت جمع‌شده‌ای وجود نداشت،
-         * نمی‌توانیم قرعه‌ی کارتی انجام دهیم.
-         *
-         * در این حالت یک بازیکن به‌صورت قطعی
-         * و بدون حلقه‌ی بی‌نهایت انتخاب می‌شود.
-         */
         if (pool.isEmpty()) {
 
             val winner =
@@ -101,35 +97,23 @@ object GameResult {
                 scores =
                     scores,
 
+                playerStats =
+                    playerStats,
+
                 isTieBroken =
                     true
             )
         }
 
-        /*
-         * چندین دور قرعه انجام می‌دهیم.
-         *
-         * در هر دور هر بازیکن یک کارت می‌گیرد.
-         * اگر یک نفر بالاترین کارت را داشته باشد،
-         * برنده مشخص شده است.
-         *
-         * اگر دوباره مساوی شود،
-         * دور بعدی انجام می‌شود.
-         */
         var availableCards =
             pool.toMutableList()
 
         while (availableCards.isNotEmpty()) {
 
-            /*
-             * اگر کارت کافی برای همه‌ی بازیکنان
-             * باقی نمانده باشد، Pool دوباره ساخته می‌شود.
-             */
             if (
                 availableCards.size <
                 tiedPlayers.size
             ) {
-
                 availableCards =
                     pool.toMutableList()
             }
@@ -178,19 +162,15 @@ object GameResult {
                     scores =
                         scores,
 
+                    playerStats =
+                        playerStats,
+
                     isTieBroken =
                         true
                 )
             }
         }
 
-        /*
-         * حالت بسیار نادر:
-         * تمام کارت‌ها بدون تعیین برنده تمام شدند.
-         *
-         * برای جلوگیری از گیر کردن بازی،
-         * یک برنده‌ی قطعی انتخاب می‌کنیم.
-         */
         val winner =
             tiedPlayers.first()
 
@@ -203,6 +183,9 @@ object GameResult {
 
             scores =
                 scores,
+
+            playerStats =
+                playerStats,
 
             isTieBroken =
                 true

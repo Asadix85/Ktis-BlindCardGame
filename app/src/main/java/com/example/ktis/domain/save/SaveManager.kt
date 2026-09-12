@@ -7,12 +7,8 @@ import org.json.JSONObject
 class SaveManager(
     context: Context
 ) {
-
     private val saveFile =
-        java.io.File(
-            context.filesDir,
-            SAVE_FILE_NAME
-        )
+        java.io.File(context.filesDir, SAVE_FILE_NAME)
 
     fun save(saveData: GameSaveData) {
         val json = JSONObject()
@@ -59,6 +55,11 @@ class SaveManager(
         json.put(
             "balanceDeck",
             cardsToJson(saveData.balanceDeck)
+        )
+
+        json.put(
+            "playerStats",
+            playerStatsToJson(saveData.playerStats)
         )
 
         saveFile.writeText(
@@ -137,6 +138,13 @@ class SaveManager(
                         json.getJSONArray(
                             "roundPlayedPlayerIds"
                         )
+                    ),
+
+                playerStats =
+                    playerStatsFromJson(
+                        json.optJSONArray(
+                            "playerStats"
+                        )
                     )
             )
         } catch (_: Exception) {
@@ -177,7 +185,9 @@ class SaveManager(
 
             json.put(
                 "collectedCards",
-                cardsToJson(player.collectedCards)
+                cardsToJson(
+                    player.collectedCards
+                )
             )
 
             array.put(json)
@@ -190,7 +200,8 @@ class SaveManager(
         array: JSONArray
     ): List<PlayerSaveData> {
 
-        val players = mutableListOf<PlayerSaveData>()
+        val players =
+            mutableListOf<PlayerSaveData>()
 
         for (index in 0 until array.length()) {
 
@@ -199,9 +210,14 @@ class SaveManager(
 
             players.add(
                 PlayerSaveData(
-                    id = json.getInt("id"),
-                    name = json.getString("name"),
-                    seat = json.getInt("seat"),
+                    id =
+                        json.getInt("id"),
+
+                    name =
+                        json.getString("name"),
+
+                    seat =
+                        json.getInt("seat"),
 
                     drawPile =
                         cardsFromJson(
@@ -240,7 +256,9 @@ class SaveManager(
 
             json.put(
                 "card",
-                cardToJson(playedCard.card)
+                cardToJson(
+                    playedCard.card
+                )
             )
 
             array.put(json)
@@ -264,11 +282,15 @@ class SaveManager(
             cards.add(
                 PlayedCardSaveData(
                     playerId =
-                        json.getInt("playerId"),
+                        json.getInt(
+                            "playerId"
+                        ),
 
                     card =
                         cardFromJson(
-                            json.getJSONObject("card")
+                            json.getJSONObject(
+                                "card"
+                            )
                         )
                 )
             )
@@ -300,6 +322,7 @@ class SaveManager(
             mutableListOf<CardSaveData>()
 
         for (index in 0 until array.length()) {
+
             cards.add(
                 cardFromJson(
                     array.getJSONObject(index)
@@ -325,8 +348,11 @@ class SaveManager(
     ): CardSaveData {
 
         return CardSaveData(
-            suit = json.getString("suit"),
-            rank = json.getString("rank")
+            suit =
+                json.getString("suit"),
+
+            rank =
+                json.getString("rank")
         )
     }
 
@@ -334,9 +360,11 @@ class SaveManager(
         array: JSONArray
     ): List<Int> {
 
-        val result = mutableListOf<Int>()
+        val result =
+            mutableListOf<Int>()
 
         for (index in 0 until array.length()) {
+
             result.add(
                 array.getInt(index)
             )
@@ -345,11 +373,84 @@ class SaveManager(
         return result
     }
 
+    private fun playerStatsToJson(
+        stats: List<PlayerStatsSaveData>
+    ): JSONArray {
+
+        val array = JSONArray()
+
+        stats.forEach { stat ->
+
+            val json = JSONObject()
+
+            json.put(
+                "playerId",
+                stat.playerId
+            )
+
+            json.put(
+                "roundWins",
+                stat.roundWins
+            )
+
+            json.put(
+                "tieCount",
+                stat.tieCount
+            )
+
+            array.put(json)
+        }
+
+        return array
+    }
+
+    private fun playerStatsFromJson(
+        array: JSONArray?
+    ): List<PlayerStatsSaveData> {
+
+        if (array == null) {
+            return emptyList()
+        }
+
+        val stats =
+            mutableListOf<PlayerStatsSaveData>()
+
+        for (index in 0 until array.length()) {
+
+            val json =
+                array.getJSONObject(index)
+
+            stats.add(
+                PlayerStatsSaveData(
+                    playerId =
+                        json.getInt(
+                            "playerId"
+                        ),
+
+                    roundWins =
+                        json.optInt(
+                            "roundWins",
+                            0
+                        ),
+
+                    tieCount =
+                        json.optInt(
+                            "tieCount",
+                            0
+                        )
+                )
+            )
+        }
+
+        return stats
+    }
+
     companion object {
 
         private const val SAVE_FILE_NAME =
             "ktis_save.json"
 
-        private const val SAVE_VERSION = 1
+        private const val SAVE_VERSION =
+            1
     }
 }

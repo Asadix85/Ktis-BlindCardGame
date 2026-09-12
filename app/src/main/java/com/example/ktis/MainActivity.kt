@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,8 +15,11 @@ import com.example.ktis.domain.engine.GameResult
 import com.example.ktis.domain.model.FinalResult
 import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.domain.save.SaveManager
+import com.example.ktis.ui.audio.KtisAudioManager
+import com.example.ktis.ui.screens.GameModeScreen
 import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.LoadingScreen
+import com.example.ktis.ui.screens.LocalGameMenuScreen
 import com.example.ktis.ui.screens.MainMenuScreen
 import com.example.ktis.ui.screens.ResultScreen
 import com.example.ktis.ui.screens.SettingsScreen
@@ -33,6 +37,15 @@ class MainActivity : ComponentActivity() {
     private val saveManager by lazy {
         SaveManager(applicationContext)
     }
+
+    private val settingsPreferences by lazy {
+        getSharedPreferences(
+            SETTINGS_FILE_NAME,
+            MODE_PRIVATE
+        )
+    }
+
+    private lateinit var audioManager: KtisAudioManager
 
     private var currentScreen by
     mutableStateOf(Screen.LOADING)
@@ -79,6 +92,25 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onCreate(savedInstanceState)
 
+        loadSettings()
+
+        audioManager =
+            KtisAudioManager(
+                applicationContext
+            )
+
+        audioManager.setSoundEnabled(
+            soundEnabled
+        )
+
+        audioManager.setMusicEnabled(
+            musicEnabled
+        )
+
+        audioManager.setVibrationEnabled(
+            vibrationEnabled
+        )
+
         hasSavedGame =
             saveManager.hasSavedGame()
 
@@ -112,8 +144,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        audioManager.release()
+        super.onDestroy()
+    }
+
     @Composable
     private fun AppContent() {
+
+        LaunchedEffect(
+            currentScreen,
+            musicEnabled
+        ) {
+            if (
+                currentScreen == Screen.MENU &&
+                musicEnabled
+            ) {
+                audioManager.startMusic()
+            } else {
+                audioManager.stopMusic()
+            }
+        }
+
         when (currentScreen) {
 
             Screen.LOADING -> {
@@ -123,26 +175,88 @@ class MainActivity : ComponentActivity() {
             Screen.MENU -> {
                 MainMenuScreen(
                     onStart = {
-                        currentScreen =
-                            Screen.SETUP
-                    },
 
-                    onContinue = {
-                        continueSavedGame()
+                        audioManager.playButtonClick()
+
+                        currentScreen =
+                            Screen.GAME_MODE
                     },
 
                     onSettings = {
+
+                        audioManager.playButtonClick()
+
                         currentScreen =
                             Screen.SETTINGS
                     },
 
                     onTutorial = {
+
+                        audioManager.playButtonClick()
+
                         currentScreen =
                             Screen.TUTORIAL
+                    }
+                )
+            }
+
+            Screen.GAME_MODE -> {
+                GameModeScreen(
+                    onLocalGame = {
+
+                        audioManager.playButtonClick()
+
+                        currentScreen =
+                            Screen.LOCAL_GAME
                     },
 
+                    onDeviceGame = {
+                        // Reserved for future
+                        // Bluetooth / Hotspot multiplayer.
+                    },
+
+                    onOnlineGame = {
+                        // Reserved for future
+                        // Internet multiplayer.
+                    },
+
+                    onBack = {
+
+                        audioManager.playButtonClick()
+
+                        currentScreen =
+                            Screen.MENU
+                    }
+                )
+            }
+
+            Screen.LOCAL_GAME -> {
+                LocalGameMenuScreen(
                     continueEnabled =
-                        hasSavedGame
+                        hasSavedGame,
+
+                    onNewGame = {
+
+                        audioManager.playButtonClick()
+
+                        currentScreen =
+                            Screen.SETUP
+                    },
+
+                    onContinue = {
+
+                        audioManager.playButtonClick()
+
+                        continueSavedGame()
+                    },
+
+                    onBack = {
+
+                        audioManager.playButtonClick()
+
+                        currentScreen =
+                            Screen.GAME_MODE
+                    }
                 )
             }
 
@@ -158,18 +272,42 @@ class MainActivity : ComponentActivity() {
                         vibrationEnabled,
 
                     onSoundChanged = {
+
                         soundEnabled = it
+
+                        audioManager.setSoundEnabled(
+                            it
+                        )
+
+                        saveSettings()
                     },
 
                     onMusicChanged = {
+
                         musicEnabled = it
+
+                        audioManager.setMusicEnabled(
+                            it
+                        )
+
+                        saveSettings()
                     },
 
                     onVibrationChanged = {
+
                         vibrationEnabled = it
+
+                        audioManager.setVibrationEnabled(
+                            it
+                        )
+
+                        saveSettings()
                     },
 
                     onBack = {
+
+                        audioManager.playButtonClick()
+
                         currentScreen =
                             Screen.MENU
                     }
@@ -179,6 +317,9 @@ class MainActivity : ComponentActivity() {
             Screen.TUTORIAL -> {
                 TutorialScreen(
                     onBack = {
+
+                        audioManager.playButtonClick()
+
                         currentScreen =
                             Screen.MENU
                     }
@@ -188,6 +329,8 @@ class MainActivity : ComponentActivity() {
             Screen.SETUP -> {
                 SetupGameScreen(
                     onStartGame = { players ->
+
+                        audioManager.playButtonClick()
 
                         gameState =
                             gameEngine.startGame(
@@ -218,8 +361,11 @@ class MainActivity : ComponentActivity() {
                     },
 
                     onBack = {
+
+                        audioManager.playButtonClick()
+
                         currentScreen =
-                            Screen.MENU
+                            Screen.LOCAL_GAME
                     }
                 )
             }
@@ -262,6 +408,7 @@ class MainActivity : ComponentActivity() {
                                 state.currentPlayer
                                     .remainingCards <= 0
                             ) {
+
                                 isActionLocked =
                                     false
 
@@ -269,6 +416,8 @@ class MainActivity : ComponentActivity() {
                             }
 
                             try {
+
+                                audioManager.playCardDraw()
 
                                 gameEngine.playCard()
 
@@ -291,6 +440,8 @@ class MainActivity : ComponentActivity() {
 
                                 message =
                                     "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
+
+                                audioManager.playCardPlace()
 
                                 if (
                                     !gameEngine
@@ -345,6 +496,8 @@ class MainActivity : ComponentActivity() {
 
                                             message =
                                                 "${winnerPlayer.name} این دست رو برد! 🏆"
+
+                                            audioManager.playRoundWin()
 
                                             delay(1500)
 
@@ -410,6 +563,8 @@ class MainActivity : ComponentActivity() {
                                             message =
                                                 "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
 
+                                            audioManager.playTie()
+
                                             visibleCenterPile =
                                                 tieState
                                                     .centerPile
@@ -453,6 +608,8 @@ class MainActivity : ComponentActivity() {
                                 return@GameScreen
                             }
 
+                            audioManager.playButtonClick()
+
                             gameEngine
                                 .shuffleBalanceDeck()
 
@@ -464,13 +621,15 @@ class MainActivity : ComponentActivity() {
 
                         onBack = {
 
+                            audioManager.playButtonClick()
+
                             saveCurrentGame()
 
                             isActionLocked =
                                 false
 
                             currentScreen =
-                                Screen.MENU
+                                Screen.LOCAL_GAME
                         }
                     )
                 }
@@ -499,6 +658,8 @@ class MainActivity : ComponentActivity() {
 
                         onNewGame = {
 
+                            audioManager.playButtonClick()
+
                             isActionLocked =
                                 false
 
@@ -507,6 +668,8 @@ class MainActivity : ComponentActivity() {
                         },
 
                         onMenu = {
+
+                            audioManager.playButtonClick()
 
                             isActionLocked =
                                 false
@@ -635,6 +798,46 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun loadSettings() {
+
+        soundEnabled =
+            settingsPreferences.getBoolean(
+                KEY_SOUND_ENABLED,
+                true
+            )
+
+        musicEnabled =
+            settingsPreferences.getBoolean(
+                KEY_MUSIC_ENABLED,
+                true
+            )
+
+        vibrationEnabled =
+            settingsPreferences.getBoolean(
+                KEY_VIBRATION_ENABLED,
+                true
+            )
+    }
+
+    private fun saveSettings() {
+
+        settingsPreferences
+            .edit()
+            .putBoolean(
+                KEY_SOUND_ENABLED,
+                soundEnabled
+            )
+            .putBoolean(
+                KEY_MUSIC_ENABLED,
+                musicEnabled
+            )
+            .putBoolean(
+                KEY_VIBRATION_ENABLED,
+                vibrationEnabled
+            )
+            .apply()
+    }
+
     private fun gameEngineStateOrNull() =
         try {
             gameEngine.getState()
@@ -645,10 +848,27 @@ class MainActivity : ComponentActivity() {
     private enum class Screen {
         LOADING,
         MENU,
+        GAME_MODE,
+        LOCAL_GAME,
         SETTINGS,
         TUTORIAL,
         SETUP,
         GAME,
         RESULT
+    }
+
+    companion object {
+
+        private const val SETTINGS_FILE_NAME =
+            "ktis_settings"
+
+        private const val KEY_SOUND_ENABLED =
+            "sound_enabled"
+
+        private const val KEY_MUSIC_ENABLED =
+            "music_enabled"
+
+        private const val KEY_VIBRATION_ENABLED =
+            "vibration_enabled"
     }
 }

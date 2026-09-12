@@ -1,6 +1,13 @@
 package com.example.ktis.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,7 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -72,6 +81,7 @@ fun GameScreen(
     val angleStep = 360f / playerCount
     val currentSeat = state.currentPlayer.seat
 
+
     var rotationTarget by remember {
         mutableStateOf(0f)
     }
@@ -80,7 +90,7 @@ fun GameScreen(
         mutableStateOf(currentSeat)
     }
 
-    LaunchedEffect(currentSeat) {
+    LaunchedEffect(currentSeat, playerCount) {
         if (currentSeat != previousSeat) {
             val seatDifference =
                 (
@@ -98,9 +108,28 @@ fun GameScreen(
 
     val tableRotation by animateFloatAsState(
         targetValue = rotationTarget,
-        animationSpec = tween(1100),
+        animationSpec = tween(
+            durationMillis = 620,
+            easing = FastOutSlowInEasing
+        ),
         label = "table_rotation"
     )
+
+
+    val winnerPulse by animateFloatAsState(
+        targetValue =
+            if (highlightedWinnerId != null) {
+                1f
+            } else {
+                0f
+            },
+        animationSpec = tween(
+            durationMillis = 260,
+            easing = FastOutSlowInEasing
+        ),
+        label = "winner_pulse"
+    )
+
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -127,6 +156,8 @@ fun GameScreen(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
+
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,13 +182,22 @@ fun GameScreen(
                 modifier = Modifier.height(8.dp)
             )
 
+
             if (message.isNotEmpty()) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(
+                            1f +
+                                    (
+                                            0.015f *
+                                                    winnerPulse
+                                            )
+                        ),
                     colors = CardDefaults.cardColors(
                         containerColor =
                             if (highlightedWinnerId != null) {
-                                Gold.copy(alpha = 0.92f)
+                                Gold.copy(alpha = 0.94f)
                             } else {
                                 CarpetBrown.copy(alpha = 0.94f)
                             }
@@ -186,6 +226,7 @@ fun GameScreen(
                 )
             }
 
+
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,11 +241,14 @@ fun GameScreen(
                         RoundedCornerShape(24.dp)
                     )
             ) {
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .rotate(tableRotation)
                 ) {
+
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -228,16 +272,19 @@ fun GameScreen(
                         )
                     }
 
+
                     visibleCenterPile.forEachIndexed {
                             index,
                             playedCard
                         ->
+
                         val player =
                             state.players.firstOrNull {
                                 it.id == playedCard.playerId
                             }
 
                         if (player != null) {
+
                             val isLatestCardOfPlayer =
                                 visibleCenterPile.indexOfLast {
                                     it.playerId ==
@@ -252,6 +299,7 @@ fun GameScreen(
 
                             CardAtSeat(
                                 card = playedCard.card,
+                                playerId = playedCard.playerId,
                                 seat = player.seat,
                                 playerCount = playerCount,
                                 cardIndex = index,
@@ -271,9 +319,12 @@ fun GameScreen(
                 modifier = Modifier.height(6.dp)
             )
 
+
             PlayerCardStack(
                 remainingCards =
-                    state.currentPlayer.remainingCards
+                    state.currentPlayer.remainingCards,
+                animateDraw =
+                    animateCenterCards
             )
 
             Spacer(
@@ -281,7 +332,8 @@ fun GameScreen(
             )
 
             Text(
-                text = "نوبت: ${state.currentPlayer.name}",
+                text =
+                    "نوبت: ${state.currentPlayer.name}",
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 color = CarpetGold,
@@ -295,8 +347,10 @@ fun GameScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
             ) {
+
                 Button(
                     onClick = onDrawCard,
                     modifier = Modifier.weight(1f),
@@ -339,7 +393,7 @@ fun GameScreen(
                 )
             ) {
                 Text(
-                    text = "بازگشت به منوی اصلی",
+                    text = "بازگشت به منوی لوکال",
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -347,9 +401,11 @@ fun GameScreen(
     }
 }
 
+
 @Composable
 private fun PlayerCardStack(
-    remainingCards: Int
+    remainingCards: Int,
+    animateDraw: Boolean
 ) {
     if (remainingCards <= 0) {
         Spacer(
@@ -369,9 +425,29 @@ private fun PlayerCardStack(
         if (visibleCards <= 1) {
             0.dp
         } else {
-            ((maxStackHeight.value - cardHeight.value) /
-                    (visibleCards - 1)).dp
+            (
+                    (
+                            maxStackHeight.value -
+                                    cardHeight.value
+                            ) /
+                            (visibleCards - 1)
+                    ).dp
         }
+
+    val stackScale by animateFloatAsState(
+        targetValue =
+            if (animateDraw) {
+                1.025f
+            } else {
+                1f
+            },
+        animationSpec = keyframes {
+            durationMillis = 180
+            1.025f at 70
+            1f at 180
+        },
+        label = "stack_draw"
+    )
 
     Box(
         modifier = Modifier
@@ -379,12 +455,16 @@ private fun PlayerCardStack(
             .height(maxStackHeight),
         contentAlignment = Alignment.BottomCenter
     ) {
+
         Box(
             modifier = Modifier
                 .width(cardWidth)
                 .height(cardHeight)
+                .scale(stackScale)
         ) {
+
             repeat(visibleCards) { index ->
+
                 Image(
                     painter = painterResource(
                         id = R.drawable.card_back
@@ -411,29 +491,33 @@ private fun PlayerCardStack(
 private fun CardCountLabel(
     count: Int
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor =
-                CarpetBrown.copy(alpha = 0.92f)
-        ),
-        shape = RoundedCornerShape(10.dp)
+    if (count <= 0) return
+
+    Box(
+        modifier = Modifier
+            .padding(bottom = 4.dp)
+            .background(
+                color = Color.Black.copy(alpha = 0.72f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(
+                horizontal = 9.dp,
+                vertical = 4.dp
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "$count کارت",
-            modifier = Modifier.padding(
-                horizontal = 10.dp,
-                vertical = 3.dp
-            ),
-            color = CarpetGold,
-            fontSize = 12.sp,
+            text = count.toString(),
+            color = Color.White,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold
         )
     }
 }
-
 @Composable
 private fun CardAtSeat(
     card: Card,
+    playerId: Int,
     seat: Int,
     playerCount: Int,
     cardIndex: Int,
@@ -447,46 +531,203 @@ private fun CardAtSeat(
 
     val radius = 0.29f
 
-    val x = -sin(angle) * radius
-    val y = cos(angle) * radius
+    val targetX = -sin(angle) * radius
+    val targetY = cos(angle) * radius
 
+    /*
+     * همان چیدمان نسخه قبلی:
+     * کارت‌ها نزدیک مرکز قرار می‌گیرند
+     * و مقدار جابه‌جایی محدود است.
+     */
     val stackOffset = (cardIndex % 5) * 7
 
-    val xOffset =
-        (x * 1000).roundToInt() +
+    val targetXOffset =
+        (targetX * 1000).roundToInt() +
                 if (cardIndex % 2 == 0) {
                     stackOffset
                 } else {
                     -stackOffset
                 }
 
-    val yOffset =
-        (y * 1000).roundToInt() +
+    val targetYOffset =
+        (targetY * 1000).roundToInt() +
                 if (cardIndex % 2 == 0) {
                     -stackOffset
                 } else {
                     stackOffset
                 }
+
+    val animationKey =
+        "$playerId-" +
+                "${card.suit.name}-" +
+                "${card.rank.name}-" +
+                "$cardIndex"
+
+    val throwProgress =
+        remember(animationKey) {
+            Animatable(
+                if (animateThrow) {
+                    0f
+                } else {
+                    1f
+                }
+            )
+        }
+
+    LaunchedEffect(
+        animationKey,
+        animateThrow
+    ) {
+        if (animateThrow) {
+            throwProgress.snapTo(0f)
+
+            throwProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 460,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        } else {
+            throwProgress.snapTo(1f)
+        }
+    }
+
+    val progress = throwProgress.value
+
+    /*
+     * کارت از جای بازیکن به سمت مرکز حرکت می‌کند.
+     */
+    val animatedX =
+        (targetXOffset * progress).roundToInt()
+
+    val animatedY =
+        (targetYOffset * progress).roundToInt()
+
+    /*
+     * چرخش نرم هنگام پرتاب
+     */
+    val direction =
+        if (cardIndex % 2 == 0) {
+            -1f
+        } else {
+            1f
+        }
+
+    val throwRotation =
+        direction *
+                sin(progress * Math.PI).toFloat() *
+                16f
+
+    /*
+     * فرود نرم
+     */
+    val settleProgress =
+        if (progress > 0.84f) {
+            (
+                    (progress - 0.84f) / 0.16f
+                    ).coerceIn(0f, 1f)
+        } else {
+            0f
+        }
+
+    val settleScale =
+        if (settleProgress > 0f) {
+            1f +
+                    (
+                            sin(
+                                settleProgress * Math.PI
+                            ).toFloat() * 0.035f
+                            )
+        } else {
+            1f
+        }
+
+    /*
+     * Highlight برنده
+     */
+    val winnerScale by animateFloatAsState(
+        targetValue =
+            if (isWinner) {
+                1.08f
+            } else {
+                1f
+            },
+        animationSpec = keyframes {
+            durationMillis = 520
+            1f at 0
+            1.08f at 180
+            1.03f at 330
+            1.08f at 430
+            1f at 520
+        },
+        label = "winner_scale"
+    )
+
+    /*
+     * Highlight تساوی
+     */
+    val tieScale by animateFloatAsState(
+        targetValue =
+            if (isTied) {
+                1.06f
+            } else {
+                1f
+            },
+        animationSpec = keyframes {
+            durationMillis = 500
+            1f at 0
+            1.06f at 130
+            1f at 250
+            1.06f at 370
+            1f at 500
+        },
+        label = "tie_scale"
+    )
+
+    val finalScale =
+        settleScale *
+                winnerScale *
+                tieScale
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .offset {
                 IntOffset(
-                    x = xOffset,
-                    y = yOffset
+                    x = animatedX,
+                    y = animatedY
                 )
             },
         contentAlignment = Alignment.Center
     ) {
+
+        if (isWinner) {
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .aspectRatio(0.69f)
+                    .scale(finalScale * 1.08f)
+                    .background(
+                        Gold.copy(alpha = 0.18f),
+                        RoundedCornerShape(10.dp)
+                    )
+            )
+        }
+
         CardView(
             card = card,
             isWinner = isWinner,
             isTied = isTied,
             throwAngle =
-                seat * (360f / playerCount),
-            animateThrow = animateThrow,
-            modifier = Modifier.width(72.dp)
+                seat *
+                        (360f / playerCount),
+            animateThrow = false,
+            modifier = Modifier
+                .width(72.dp)
+                .scale(finalScale)
+                .rotate(throwRotation)
+                .aspectRatio(0.69f)
         )
     }
 }
