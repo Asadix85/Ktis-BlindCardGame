@@ -15,6 +15,21 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../ktis-release-key.jks")
+            storePassword = "580813850928"
+            keyAlias = "ktis"
+            keyPassword = "580813850928"
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     buildFeatures {
         compose = true
     }
