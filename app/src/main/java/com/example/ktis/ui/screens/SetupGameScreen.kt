@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -18,9 +19,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -29,7 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -48,6 +55,8 @@ private val NazaninFont = FontFamily(
 private val Caramel = Color(0xFFD29A62)
 private val WoodDark = Color(0xFF4A2B18)
 private val WoodMedium = Color(0xFF6B3F22)
+private val ButtonShape = RoundedCornerShape(16.dp)
+private val FieldShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun SetupGameScreen(
@@ -95,7 +104,13 @@ fun SetupGameScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Color.Black.copy(alpha = 0.18f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
                 )
         )
 
@@ -148,7 +163,9 @@ fun SetupGameScreen(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -211,6 +228,7 @@ fun SetupGameScreen(
                         .padding(
                             bottom = 12.dp
                         ),
+                    shape = FieldShape,
                     label = {
                         Text(
                             text = "بازیکن ${index + 1}",
@@ -218,7 +236,18 @@ fun SetupGameScreen(
                         )
                     },
                     singleLine = true,
-                    isError = name.trim().isEmpty()
+                    isError = name.trim().isEmpty(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Caramel,
+                        unfocusedTextColor = Caramel.copy(alpha = 0.85f),
+                        focusedBorderColor = Caramel,
+                        unfocusedBorderColor = Caramel.copy(alpha = 0.4f),
+                        focusedLabelColor = Caramel,
+                        unfocusedLabelColor = Caramel.copy(alpha = 0.6f),
+                        cursorColor = Caramel,
+                        focusedContainerColor = WoodDark.copy(alpha = 0.25f),
+                        unfocusedContainerColor = WoodDark.copy(alpha = 0.18f)
+                    )
                 )
             }
 
@@ -278,26 +307,38 @@ private fun WoodenSmallButton(
         } else {
             1f
         },
-        animationSpec = tween(80),
+        animationSpec = tween(100),
         label = "small_button_press"
     )
+
+    val gradient = if (enabled) {
+        Brush.verticalGradient(listOf(WoodMedium, WoodDark))
+    } else {
+        Brush.verticalGradient(
+            listOf(WoodDark.copy(alpha = 0.45f), WoodDark.copy(alpha = 0.55f))
+        )
+    }
 
     Box(
         modifier = Modifier
             .width(64.dp)
-            .height(52.dp)
+            .height(56.dp)
             .scale(scale)
-            .background(
-                if (enabled) {
-                    WoodMedium
-                } else {
-                    WoodDark.copy(alpha = 0.55f)
-                }
+            .shadow(
+                elevation = if (enabled) 5.dp else 0.dp,
+                shape = ButtonShape
+            )
+            .clip(ButtonShape)
+            .background(gradient)
+            .border(
+                width = 1.dp,
+                color = Caramel.copy(alpha = if (enabled) 0.35f else 0.1f),
+                shape = ButtonShape
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = ripple(color = Caramel),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -333,26 +374,38 @@ private fun WoodenWideButton(
         } else {
             1f
         },
-        animationSpec = tween(80),
+        animationSpec = tween(100),
         label = "wide_button_press"
     )
+
+    val gradient = if (enabled) {
+        Brush.verticalGradient(listOf(WoodMedium, WoodDark))
+    } else {
+        Brush.verticalGradient(
+            listOf(WoodDark.copy(alpha = 0.45f), WoodDark.copy(alpha = 0.55f))
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(58.dp)
             .scale(scale)
-            .background(
-                if (enabled) {
-                    WoodMedium
-                } else {
-                    WoodDark.copy(alpha = 0.55f)
-                }
+            .shadow(
+                elevation = if (enabled) 6.dp else 0.dp,
+                shape = ButtonShape
+            )
+            .clip(ButtonShape)
+            .background(gradient)
+            .border(
+                width = 1.dp,
+                color = Caramel.copy(alpha = if (enabled) 0.35f else 0.1f),
+                shape = ButtonShape
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = ripple(color = Caramel),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center

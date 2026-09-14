@@ -5,11 +5,10 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -22,7 +21,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,10 +33,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +59,7 @@ private val NazaninFont = FontFamily(
 private val Caramel = Color(0xFFD29A62)
 private val WoodDark = Color(0xFF4A2B18)
 private val WoodMedium = Color(0xFF6B3F22)
+private val ButtonShape = RoundedCornerShape(18.dp)
 
 @Composable
 fun GameModeScreen(
@@ -60,22 +68,16 @@ fun GameModeScreen(
     onOnlineGame: () -> Unit,
     onBack: () -> Unit
 ) {
-    var showContent by remember {
-        mutableStateOf(false)
-    }
+    var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(80)
         showContent = true
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(
-                id = R.drawable.menu_wood_background
-            ),
+            painter = painterResource(id = R.drawable.menu_wood_background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -85,33 +87,39 @@ fun GameModeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Color.Black.copy(alpha = 0.18f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
                 )
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    horizontal = 32.dp,
-                    vertical = 28.dp
-                ),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "KTIS",
-                color = Caramel,
-                fontSize = 52.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 5.sp
+                style = TextStyle(
+                    color = Caramel,
+                    fontSize = 54.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 5.sp,
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        offset = Offset(0f, 4f),
+                        blurRadius = 12f
+                    )
+                )
             )
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "انتخاب حالت بازی",
@@ -122,9 +130,7 @@ fun GameModeScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(
-                modifier = Modifier.height(6.dp)
-            )
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = "روش بازی خودت رو انتخاب کن",
@@ -134,30 +140,19 @@ fun GameModeScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(
-                modifier = Modifier.height(30.dp)
-            )
+            Spacer(modifier = Modifier.height(30.dp))
 
             AnimatedVisibility(
                 visible = showContent,
-                enter =
-                    fadeIn(
-                        tween(400)
-                    ) +
-                            slideInVertically(
-                                initialOffsetY = { 35 },
-                                animationSpec =
-                                    tween(
-                                        450,
-                                        easing =
-                                            FastOutSlowInEasing
-                                    )
-                            )
+                enter = fadeIn(tween(400)) +
+                        slideInVertically(
+                            initialOffsetY = { 35 },
+                            animationSpec = tween(450, easing = FastOutSlowInEasing)
+                        )
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement =
-                        Arrangement.spacedBy(15.dp)
+                    verticalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
                     GameModeButton(
                         text = "🎴 بازی لوکال",
@@ -181,29 +176,16 @@ fun GameModeScreen(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(25.dp)
-            )
+            Spacer(modifier = Modifier.height(25.dp))
 
             AnimatedVisibility(
                 visible = showContent,
-                enter =
-                    fadeIn(
-                        tween(
-                            400,
-                            delayMillis = 350
-                        )
-                    )
+                enter = fadeIn(tween(400, delayMillis = 350))
             ) {
-                WoodenBackButton(
-                    text = "بازگشت",
-                    onClick = onBack
-                )
+                WoodenBackButton(text = "بازگشت", onClick = onBack)
             }
 
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
@@ -215,84 +197,94 @@ private fun GameModeButton(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    val interactionSource =
-        remember {
-            MutableInteractionSource()
-        }
-
-    val isPressed by
-    interactionSource.collectIsPressedAsState()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue =
-            if (isPressed && enabled) {
-                0.96f
-            } else {
-                1f
-            },
-        animationSpec = tween(80),
+        targetValue = if (isPressed && enabled) 0.96f else 1f,
+        animationSpec = tween(100),
         label = "game_mode_button_press"
     )
+
+    val gradient = if (enabled) {
+        Brush.verticalGradient(listOf(WoodMedium, WoodDark))
+    } else {
+        Brush.verticalGradient(
+            listOf(WoodDark.copy(alpha = 0.45f), WoodDark.copy(alpha = 0.55f))
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .background(
-                if (enabled) {
-                    WoodMedium
-                } else {
-                    WoodDark.copy(alpha = 0.55f)
-                }
-            )
-            .clickable(
-                enabled = enabled,
-                interactionSource =
-                    interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(
-                horizontal = 18.dp,
-                vertical = 14.dp
-            )
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = if (enabled) 6.dp else 0.dp, shape = ButtonShape)
+                .clip(ButtonShape)
+                .background(gradient)
+                .border(
+                    width = 1.dp,
+                    color = Caramel.copy(alpha = if (enabled) 0.35f else 0.1f),
+                    shape = ButtonShape
+                )
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                    indication = ripple(color = Caramel),
+                    onClick = onClick
+                )
+                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
-            Text(
-                text = text,
-                color =
-                    if (enabled) {
-                        Caramel
-                    } else {
-                        Caramel.copy(alpha = 0.4f)
-                    },
-                fontFamily = NazaninFont,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = text,
+                    color = if (enabled) Caramel else Caramel.copy(alpha = 0.4f),
+                    fontFamily = NazaninFont,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(
-                modifier = Modifier.height(2.dp)
-            )
+                Spacer(modifier = Modifier.height(2.dp))
 
-            Text(
-                text = subtitle,
-                color =
-                    if (enabled) {
-                        Caramel.copy(alpha = 0.78f)
-                    } else {
-                        Caramel.copy(alpha = 0.28f)
-                    },
-                fontFamily = NazaninFont,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = subtitle,
+                    color = if (enabled) Caramel.copy(alpha = 0.78f) else Caramel.copy(alpha = 0.28f),
+                    fontFamily = NazaninFont,
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+
+        if (!enabled) {
+            ComingSoonBadge(modifier = Modifier.align(Alignment.TopEnd))
+        }
+    }
+}
+
+@Composable
+private fun ComingSoonBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(8.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Caramel)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = "به‌زودی",
+            color = WoodDark,
+            fontFamily = NazaninFont,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -301,22 +293,12 @@ private fun WoodenBackButton(
     text: String,
     onClick: () -> Unit
 ) {
-    val interactionSource =
-        remember {
-            MutableInteractionSource()
-        }
-
-    val isPressed by
-    interactionSource.collectIsPressedAsState()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue =
-            if (isPressed) {
-                0.96f
-            } else {
-                1f
-            },
-        animationSpec = tween(80),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(100),
         label = "back_button_press"
     )
 
@@ -325,11 +307,13 @@ private fun WoodenBackButton(
             .fillMaxWidth()
             .height(54.dp)
             .scale(scale)
-            .background(WoodMedium)
+            .shadow(elevation = 4.dp, shape = ButtonShape)
+            .clip(ButtonShape)
+            .background(Brush.verticalGradient(listOf(WoodMedium, WoodDark)))
+            .border(width = 1.dp, color = Caramel.copy(alpha = 0.3f), shape = ButtonShape)
             .clickable(
-                interactionSource =
-                    interactionSource,
-                indication = null,
+                interactionSource = interactionSource,
+                indication = ripple(color = Caramel),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center

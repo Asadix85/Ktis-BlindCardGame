@@ -430,8 +430,26 @@ class MainActivity : ComponentActivity() {
                                         .centerPile
                                         .toList()
 
+                                /*
+                                 * فقط کارت تازه‌انداخته‌شده
+                                 * باید انیمیشن پرتاب داشته باشه.
+                                 *
+                                 * بعد از ۴۵۰ میلی‌ثانیه که
+                                 * انیمیشن پرتاب تموم شد،
+                                 * animateCenterCards رو false
+                                 * می‌کنیم تا کارت‌های قبلی
+                                 * دوباره انیمیت نشن.
+                                 */
                                 animateCenterCards =
                                     true
+
+                                lifecycleScope.launch {
+
+                                    delay(450)
+
+                                    animateCenterCards =
+                                        false
+                                }
 
                                 saveCurrentGame()
 
