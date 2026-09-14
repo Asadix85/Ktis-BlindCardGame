@@ -40,29 +40,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ktis.R
 import com.example.ktis.domain.model.PlayerSetup
+import com.example.ktis.ui.components.WoodenButton
+import com.example.ktis.ui.theme.Caramel
+import com.example.ktis.ui.theme.NazaninFont
+import com.example.ktis.ui.theme.WoodDark
+import com.example.ktis.ui.theme.WoodMedium
 
-private val NazaninFont = FontFamily(
-    Font(R.font.nazanin, FontWeight.Normal)
-)
-
-private val Caramel = Color(0xFFD29A62)
-private val WoodDark = Color(0xFF4A2B18)
-private val WoodMedium = Color(0xFF6B3F22)
-private val ButtonShape = RoundedCornerShape(16.dp)
-private val FieldShape = RoundedCornerShape(14.dp)
 
 @Composable
 fun SetupGameScreen(
     onStartGame: (List<PlayerSetup>) -> Unit,
     onBack: () -> Unit
 ) {
+
     var playerCount by remember {
         mutableStateOf(2)
     }
@@ -91,6 +86,7 @@ fun SetupGameScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+
         Image(
             painter = painterResource(
                 id = R.drawable.menu_wood_background
@@ -126,6 +122,7 @@ fun SetupGameScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
                 text = "KTIS",
                 color = Caramel,
@@ -169,14 +166,13 @@ fun SetupGameScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                WoodenSmallButton(
+
+                CounterButton(
                     text = "−",
                     enabled = playerCount > 2,
                     onClick = {
                         if (playerCount > 2) {
-                            updatePlayerCount(
-                                playerCount - 1
-                            )
+                            updatePlayerCount(playerCount - 1)
                         }
                     }
                 )
@@ -188,14 +184,12 @@ fun SetupGameScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                WoodenSmallButton(
+                CounterButton(
                     text = "+",
                     enabled = playerCount < 8,
                     onClick = {
                         if (playerCount < 8) {
-                            updatePlayerCount(
-                                playerCount + 1
-                            )
+                            updatePlayerCount(playerCount + 1)
                         }
                     }
                 )
@@ -218,6 +212,7 @@ fun SetupGameScreen(
             )
 
             names.forEachIndexed { index, name ->
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = {
@@ -225,10 +220,8 @@ fun SetupGameScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(
-                            bottom = 12.dp
-                        ),
-                    shape = FieldShape,
+                        .padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     label = {
                         Text(
                             text = "بازیکن ${index + 1}",
@@ -255,19 +248,19 @@ fun SetupGameScreen(
                 modifier = Modifier.height(12.dp)
             )
 
-            WoodenWideButton(
+            WoodenButton(
                 text = "شروع بازی",
                 enabled = names.all {
                     it.trim().isNotEmpty()
                 },
+                highlighted = true,
                 onClick = {
-                    val players =
-                        names.map { name ->
-                            PlayerSetup(
-                                name = name.trim(),
-                                seat = 0
-                            )
-                        }
+                    val players = names.map { name ->
+                        PlayerSetup(
+                            name = name.trim(),
+                            seat = 0
+                        )
+                    }
 
                     onStartGame(players)
                 }
@@ -277,7 +270,7 @@ fun SetupGameScreen(
                 modifier = Modifier.height(12.dp)
             )
 
-            WoodenWideButton(
+            WoodenButton(
                 text = "بازگشت",
                 onClick = onBack
             )
@@ -289,35 +282,34 @@ fun SetupGameScreen(
     }
 }
 
+
+/*
+ * ============================================================
+ * دکمه‌ی کوچیک شمارنده (+ / −)
+ * ============================================================
+ */
 @Composable
-private fun WoodenSmallButton(
+private fun CounterButton(
     text: String,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+
     val interactionSource = remember {
         MutableInteractionSource()
     }
 
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val isPressed by interactionSource
+        .collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) {
-            0.92f
-        } else {
-            1f
-        },
+        targetValue =
+            if (isPressed && enabled) 0.92f else 1f,
         animationSpec = tween(100),
-        label = "small_button_press"
+        label = "counter_button_press"
     )
 
-    val gradient = if (enabled) {
-        Brush.verticalGradient(listOf(WoodMedium, WoodDark))
-    } else {
-        Brush.verticalGradient(
-            listOf(WoodDark.copy(alpha = 0.45f), WoodDark.copy(alpha = 0.55f))
-        )
-    }
+    val shape = RoundedCornerShape(16.dp)
 
     Box(
         modifier = Modifier
@@ -326,14 +318,28 @@ private fun WoodenSmallButton(
             .scale(scale)
             .shadow(
                 elevation = if (enabled) 5.dp else 0.dp,
-                shape = ButtonShape
+                shape = shape
             )
-            .clip(ButtonShape)
-            .background(gradient)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors =
+                        if (enabled) {
+                            listOf(WoodMedium, WoodDark)
+                        } else {
+                            listOf(
+                                WoodDark.copy(alpha = 0.45f),
+                                WoodDark.copy(alpha = 0.55f)
+                            )
+                        }
+                )
+            )
             .border(
                 width = 1.dp,
-                color = Caramel.copy(alpha = if (enabled) 0.35f else 0.1f),
-                shape = ButtonShape
+                color = Caramel.copy(
+                    alpha = if (enabled) 0.35f else 0.1f
+                ),
+                shape = shape
             )
             .clickable(
                 enabled = enabled,
@@ -343,82 +349,16 @@ private fun WoodenSmallButton(
             ),
         contentAlignment = Alignment.Center
     ) {
+
         Text(
             text = text,
-            color = if (enabled) {
-                Caramel
-            } else {
-                Caramel.copy(alpha = 0.3f)
-            },
+            color =
+                if (enabled) {
+                    Caramel
+                } else {
+                    Caramel.copy(alpha = 0.3f)
+                },
             fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun WoodenWideButton(
-    text: String,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
-
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) {
-            0.96f
-        } else {
-            1f
-        },
-        animationSpec = tween(100),
-        label = "wide_button_press"
-    )
-
-    val gradient = if (enabled) {
-        Brush.verticalGradient(listOf(WoodMedium, WoodDark))
-    } else {
-        Brush.verticalGradient(
-            listOf(WoodDark.copy(alpha = 0.45f), WoodDark.copy(alpha = 0.55f))
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-            .scale(scale)
-            .shadow(
-                elevation = if (enabled) 6.dp else 0.dp,
-                shape = ButtonShape
-            )
-            .clip(ButtonShape)
-            .background(gradient)
-            .border(
-                width = 1.dp,
-                color = Caramel.copy(alpha = if (enabled) 0.35f else 0.1f),
-                shape = ButtonShape
-            )
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = ripple(color = Caramel),
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (enabled) {
-                Caramel
-            } else {
-                Caramel.copy(alpha = 0.35f)
-            },
-            fontFamily = NazaninFont,
-            fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
     }

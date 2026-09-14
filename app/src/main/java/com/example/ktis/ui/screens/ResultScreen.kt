@@ -8,9 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,17 +42,14 @@ import androidx.compose.ui.unit.sp
 import com.example.ktis.R
 import com.example.ktis.domain.model.FinalResult
 import com.example.ktis.domain.model.PlayerStats
+import com.example.ktis.ui.components.WoodenButton
+import com.example.ktis.ui.theme.Caramel
+import com.example.ktis.ui.theme.Gold
+import com.example.ktis.ui.theme.NazaninFont
+import com.example.ktis.ui.theme.WoodDark
+import com.example.ktis.ui.theme.WoodMedium
 import kotlinx.coroutines.delay
 
-private val NazaninFont = FontFamily(
-    Font(R.font.nazanin, FontWeight.Normal)
-)
-
-private val Caramel = Color(0xFFD29A62)
-private val WoodDark = Color(0xFF4A2B18)
-private val WoodMedium = Color(0xFF6B3F22)
-private val WoodLight = Color(0xFF8A552F)
-private val Gold = Color(0xFFFFD700)
 
 @Composable
 fun ResultScreen(
@@ -65,6 +58,7 @@ fun ResultScreen(
     onNewGame: () -> Unit,
     onMenu: () -> Unit
 ) {
+
     var showContent by remember {
         mutableStateOf(false)
     }
@@ -100,6 +94,7 @@ fun ResultScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+
         Image(
             painter = painterResource(
                 id = R.drawable.menu_wood_background
@@ -109,11 +104,20 @@ fun ResultScreen(
             contentScale = ContentScale.Crop
         )
 
+        /*
+         * گرادینت overlay - مثل بقیه‌ی صفحه‌ها
+         */
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Color.Black.copy(alpha = 0.18f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
                 )
         )
 
@@ -122,10 +126,9 @@ fun ResultScreen(
                 .fillMaxSize()
                 .padding(
                     horizontal = 28.dp,
-                    vertical = 22.dp
+                    vertical = 24.dp
                 ),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             AnimatedVisibility(
@@ -138,15 +141,15 @@ fun ResultScreen(
                                 initialOffsetY = { -40 },
                                 animationSpec = tween(
                                     550,
-                                    easing =
-                                        FastOutSlowInEasing
+                                    easing = FastOutSlowInEasing
                                 )
                             )
             ) {
+
                 Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
                     Text(
                         text = "🏆",
                         fontSize = 58.sp
@@ -197,6 +200,7 @@ fun ResultScreen(
                     )
 
                     if (result.isTieBroken) {
+
                         Spacer(
                             modifier = Modifier.height(5.dp)
                         )
@@ -248,8 +252,9 @@ fun ResultScreen(
                         rememberScrollState()
                     ),
                 verticalArrangement =
-                    Arrangement.spacedBy(2.dp)
+                    Arrangement.spacedBy(8.dp)
             ) {
+
                 sortedScores.forEachIndexed {
                         index,
                         entry
@@ -279,8 +284,7 @@ fun ResultScreen(
                         roundWins = stats.roundWins,
                         tieCount = stats.tieCount,
                         isWinner =
-                            entry.key ==
-                                    result.winnerId,
+                            entry.key == result.winnerId,
                         visible = showContent,
                         animationDelay =
                             100 + (index * 80)
@@ -292,16 +296,17 @@ fun ResultScreen(
                 modifier = Modifier.height(12.dp)
             )
 
-            WoodenResultButton(
+            WoodenButton(
                 text = "بازی جدید",
-                onClick = onNewGame
+                onClick = onNewGame,
+                highlighted = true
             )
 
             Spacer(
-                modifier = Modifier.height(9.dp)
+                modifier = Modifier.height(10.dp)
             )
 
-            WoodenResultButton(
+            WoodenButton(
                 text = "منوی اصلی",
                 onClick = onMenu
             )
@@ -309,6 +314,12 @@ fun ResultScreen(
     }
 }
 
+
+/*
+ * ============================================================
+ * ردیف امتیاز هر بازیکن
+ * ============================================================
+ */
 @Composable
 private fun ScoreRow(
     rank: Int,
@@ -321,11 +332,13 @@ private fun ScoreRow(
     visible: Boolean,
     animationDelay: Int
 ) {
+
     var showRow by remember {
         mutableStateOf(false)
     }
 
     LaunchedEffect(visible) {
+
         if (visible) {
             delay(animationDelay.toLong())
             showRow = true
@@ -342,11 +355,11 @@ private fun ScoreRow(
                         initialOffsetY = { 25 },
                         animationSpec = tween(
                             400,
-                            easing =
-                                FastOutSlowInEasing
+                            easing = FastOutSlowInEasing
                         )
                     )
     ) {
+
         val backgroundColor =
             if (isWinner) {
                 Caramel.copy(alpha = 0.96f)
@@ -361,37 +374,36 @@ private fun ScoreRow(
                 Caramel
             }
 
+        val shape = RoundedCornerShape(16.dp)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    vertical = 3.dp
-                )
-                .background(
-                    backgroundColor,
-                    RoundedCornerShape(12.dp)
-                )
+                .clip(shape)
+                .background(backgroundColor)
                 .padding(
                     horizontal = 14.dp,
                     vertical = 10.dp
                 )
         ) {
+
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
 
                 Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement =
                         Arrangement.SpaceBetween,
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
+
                     Row(
                         verticalAlignment =
                             Alignment.CenterVertically
                     ) {
+
                         Text(
                             text =
                                 when (rank) {
@@ -407,14 +419,11 @@ private fun ScoreRow(
                                 } else {
                                     18.sp
                                 },
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
 
                         Spacer(
-                            modifier = Modifier.width(
-                                8.dp
-                            )
+                            modifier = Modifier.width(8.dp)
                         )
 
                         Text(
@@ -450,28 +459,25 @@ private fun ScoreRow(
                 )
 
                 Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(7.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(
                                 if (isWinner) {
-                                    WoodDark.copy(
-                                        alpha = 0.25f
-                                    )
+                                    WoodDark.copy(alpha = 0.25f)
                                 } else {
-                                    WoodDark.copy(
-                                        alpha = 0.45f
-                                    )
-                                },
-                                RoundedCornerShape(8.dp)
+                                    WoodDark.copy(alpha = 0.45f)
+                                }
                             )
                     ) {
+
                         val progress by
                         animateFloatAsState(
                             targetValue =
@@ -483,25 +489,20 @@ private fun ScoreRow(
                                     easing =
                                         FastOutSlowInEasing
                                 ),
-                            label =
-                                "score_progress"
+                            label = "score_progress"
                         )
 
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(
-                                    progress
-                                )
+                                .fillMaxWidth(progress)
                                 .height(7.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isWinner) {
                                         Gold
                                     } else {
                                         Caramel
-                                    },
-                                    RoundedCornerShape(
-                                        8.dp
-                                    )
+                                    }
                                 )
                         )
                     }
@@ -512,7 +513,12 @@ private fun ScoreRow(
 
                     Text(
                         text =
-                            "${String.format("%.1f", percentage)}٪",
+                            "${
+                                String.format(
+                                    "%.1f",
+                                    percentage
+                                )
+                            }٪",
                         color = textColor,
                         fontFamily = NazaninFont,
                         fontSize = 14.sp,
@@ -525,13 +531,13 @@ private fun ScoreRow(
                 )
 
                 Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement =
                         Arrangement.SpaceEvenly,
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
+
                     Text(
                         text = "🏆 $roundWins برد",
                         color = textColor,
@@ -560,58 +566,5 @@ private fun ScoreRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun WoodenResultButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    val interactionSource =
-        remember {
-            MutableInteractionSource()
-        }
-
-    val isPressed by
-    interactionSource
-        .collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue =
-            if (isPressed) {
-                0.96f
-            } else {
-                1f
-            },
-        animationSpec =
-            tween(80),
-        label = "result_button_press"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .scale(scale)
-            .background(
-                WoodMedium
-            )
-            .clickable(
-                interactionSource =
-                    interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment =
-            Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = Caramel,
-            fontFamily = NazaninFont,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

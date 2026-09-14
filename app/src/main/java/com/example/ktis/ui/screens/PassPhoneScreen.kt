@@ -1,31 +1,43 @@
 package com.example.ktis.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ktis.R
 import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.ui.components.CardView
-import com.example.ktis.ui.theme.Gold
+import com.example.ktis.ui.components.WoodenButton
+import com.example.ktis.ui.theme.Caramel
+import com.example.ktis.ui.theme.NazaninFont
+import com.example.ktis.ui.theme.WoodDark
+import com.example.ktis.ui.theme.WoodMedium
+
 
 @Composable
 fun PassPhoneScreen(
@@ -34,199 +46,180 @@ fun PassPhoneScreen(
     onContinue: () -> Unit
 ) {
 
-    Column(
-
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(
-                    MaterialTheme.colorScheme.background
-                )
-                .padding(28.dp),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-
-        verticalArrangement =
-            Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        /*
-         * Show cards already played in the round.
-         *
-         * These cards are face-up and do not animate,
-         * because they are already sitting on the table.
-         */
-        if (centerPile.isNotEmpty()) {
+        Image(
+            painter = painterResource(
+                id = R.drawable.menu_wood_background
+            ),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-            Text(
-                text =
-                    "کارت‌های روی زمین",
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
+                )
+        )
 
-                style =
-                    MaterialTheme.typography
-                        .titleMedium,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = 28.dp,
+                    vertical = 24.dp
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
 
-                color =
-                    Gold,
+            if (centerPile.isNotEmpty()) {
 
-                fontWeight =
-                    FontWeight.Bold,
+                Text(
+                    text = "کارت‌های روی زمین",
+                    color = Caramel,
+                    fontFamily = NazaninFont,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
 
-                textAlign =
-                    TextAlign.Center
-            )
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
 
-            Spacer(
-                Modifier.size(12.dp)
-            )
-
-            Row(
-
-                modifier =
-                    Modifier
+                Row(
+                    modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(
                             rememberScrollState()
                         ),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
 
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp),
+                    centerPile.forEach { playedCard ->
 
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                centerPile.forEach { playedCard ->
-
-                    CardView(
-                        card =
-                            playedCard.card,
-
-                        modifier =
-                            Modifier.size(
+                        CardView(
+                            card = playedCard.card,
+                            modifier = Modifier.size(
                                 width = 78.dp,
                                 height = 115.dp
                             )
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(28.dp)
+                )
+            }
+
+            Text(
+                text = "📱",
+                fontSize = 80.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
+
+            Text(
+                text = "نوبت توئه",
+                color = Caramel,
+                fontFamily = NazaninFont,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                WoodMedium.copy(alpha = 0.92f),
+                                WoodDark.copy(alpha = 0.92f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Caramel.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .padding(
+                        horizontal = 18.dp,
+                        vertical = 22.dp
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Text(
+                        text = playerName,
+                        color = Caramel,
+                        fontFamily = NazaninFont,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Text(
+                        text = "گوشی را به $playerName بده",
+                        color = Caramel.copy(alpha = 0.9f),
+                        fontFamily = NazaninFont,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = "مطمئن شو بازیکن قبلی کارت خودش را ندیده است.",
+                        color = Caramel.copy(alpha = 0.65f),
+                        fontFamily = NazaninFont,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
             Spacer(
-                Modifier.size(28.dp)
+                modifier = Modifier.height(32.dp)
             )
-        }
 
-        /*
-         * Phone icon
-         */
-        Text(
-            text = "📱",
-            fontSize = 80.sp
-        )
-
-        Spacer(
-            Modifier.size(24.dp)
-        )
-
-        /*
-         * Turn
-         */
-        Text(
-            text =
-                "نوبت توئه",
-
-            style =
-                MaterialTheme.typography
-                    .headlineMedium,
-
-            color =
-                Gold
-        )
-
-        Spacer(
-            Modifier.size(10.dp)
-        )
-
-        /*
-         * Player name
-         */
-        Text(
-            text =
-                playerName,
-
-            style =
-                MaterialTheme.typography
-                    .displaySmall,
-
-            textAlign =
-                TextAlign.Center
-        )
-
-        Spacer(
-            Modifier.size(16.dp)
-        )
-
-        /*
-         * Pass phone instruction
-         */
-        Text(
-            text =
-                "گوشی را به $playerName بده",
-
-            style =
-                MaterialTheme.typography
-                    .titleMedium,
-
-            textAlign =
-                TextAlign.Center
-        )
-
-        Text(
-            text =
-                "مطمئن شو بازیکن قبلی کارت خودش را ندیده است.",
-
-            style =
-                MaterialTheme.typography
-                    .bodyMedium,
-
-            textAlign =
-                TextAlign.Center,
-
-            modifier =
-                Modifier.padding(
-                    top = 8.dp
-                )
-        )
-
-        Spacer(
-            Modifier.size(32.dp)
-        )
-
-        /*
-         * Continue
-         */
-        Button(
-
-            onClick =
-                onContinue,
-
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor =
-                        Gold
-                ),
-
-            modifier =
-                Modifier.fillMaxWidth()
-        ) {
-
-            Text(
-                text =
-                    "آماده‌ام — ادامه",
-
-                color =
-                    Color.Black
+            WoodenButton(
+                text = "آماده‌ام — ادامه",
+                onClick = onContinue,
+                highlighted = true
             )
         }
     }

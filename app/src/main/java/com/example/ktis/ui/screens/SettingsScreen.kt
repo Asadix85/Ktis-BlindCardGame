@@ -4,18 +4,21 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,24 +29,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ktis.R
+import com.example.ktis.ui.components.WoodenButton
+import com.example.ktis.ui.theme.Caramel
+import com.example.ktis.ui.theme.NazaninFont
+import com.example.ktis.ui.theme.WoodDark
+import com.example.ktis.ui.theme.WoodMedium
 
-private val NazaninFont = FontFamily(
-    Font(R.font.nazanin, FontWeight.Normal)
-)
-
-private val Caramel = Color(0xFFD29A62)
-private val WoodDark = Color(0xFF4A2B18)
-private val WoodMedium = Color(0xFF6B3F22)
 
 @Composable
 fun SettingsScreen(
@@ -55,6 +56,7 @@ fun SettingsScreen(
     onVibrationChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
+
     var showAbout by remember {
         mutableStateOf(false)
     }
@@ -62,6 +64,7 @@ fun SettingsScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+
         Image(
             painter = painterResource(
                 id = R.drawable.menu_wood_background
@@ -75,7 +78,13 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Color.Black.copy(alpha = 0.18f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
                 )
         )
 
@@ -83,11 +92,12 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = 32.dp,
-                    vertical = 28.dp
+                    horizontal = 28.dp,
+                    vertical = 24.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
                 text = "تنظیمات",
                 color = Caramel,
@@ -104,6 +114,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
                 SettingsToggleRow(
                     title = "صدا",
                     enabled = soundEnabled,
@@ -128,7 +139,11 @@ fun SettingsScreen(
                     }
                 )
 
-                SettingsButton(
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
+
+                WoodenButton(
                     text = "درباره KTIS",
                     onClick = {
                         showAbout = true
@@ -140,7 +155,7 @@ fun SettingsScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            SettingsButton(
+            WoodenButton(
                 text = "بازگشت",
                 onClick = onBack
             )
@@ -148,10 +163,14 @@ fun SettingsScreen(
     }
 
     if (showAbout) {
+
         AlertDialog(
             onDismissRequest = {
                 showAbout = false
             },
+            containerColor = WoodDark,
+            titleContentColor = Caramel,
+            textContentColor = Caramel,
             title = {
                 Text(
                     text = "KTIS",
@@ -176,7 +195,9 @@ fun SettingsScreen(
                 ) {
                     Text(
                         text = "باشه",
-                        fontFamily = NazaninFont
+                        color = Caramel,
+                        fontFamily = NazaninFont,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -184,30 +205,62 @@ fun SettingsScreen(
     }
 }
 
+
+/*
+ * ============================================================
+ * ردیف تنظیمات با کلید روشن/خاموش
+ * ============================================================
+ *
+ * این از همون استایل دکمه‌ی چوبی استفاده می‌کنه:
+ *  - گوشه‌ی گرد 18dp
+ *  - گرادینت عمودی WoodMedium → WoodDark
+ *  - حاشیه‌ی نازک کاراملی
+ *  - انیمیشن فشردن
+ *
+ * داخلش یه متن سمت چپ و یه کلید روشن/خاموش سمت راسته.
+ */
 @Composable
 private fun SettingsToggleRow(
     title: String,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+
     val interactionSource = remember {
         MutableInteractionSource()
     }
 
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val isPressed by interactionSource
+        .collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(80),
-        label = "settings_press"
+        targetValue =
+            if (isPressed) 0.96f else 1f,
+        animationSpec = tween(100),
+        label = "settings_toggle_press"
     )
+
+    val shape = RoundedCornerShape(18.dp)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(58.dp)
+            .height(60.dp)
             .scale(scale)
-            .background(WoodMedium)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        WoodMedium,
+                        WoodDark
+                    )
+                )
+            )
+            .border(
+                width = 1.dp,
+                color = Caramel.copy(alpha = 0.35f),
+                shape = shape
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -216,11 +269,13 @@ private fun SettingsToggleRow(
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center
     ) {
-        androidx.compose.foundation.layout.Row(
+
+        Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+
             Text(
                 text = title,
                 color = Caramel,
@@ -229,71 +284,48 @@ private fun SettingsToggleRow(
                 fontWeight = FontWeight.Bold
             )
 
+            /*
+             * کلید روشن/خاموش.
+             *
+             * خود کلید هم گوشه‌ی گرد داره و داخلش
+             * متن «روشن» یا «خاموش» می‌شه.
+             */
             Box(
                 modifier = Modifier
-                    .width(82.dp)
+                    .width(84.dp)
                     .height(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (enabled) {
                             Caramel
                         } else {
                             WoodDark
                         }
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Caramel.copy(
+                            alpha = if (enabled) 0.8f else 0.3f
+                        ),
+                        shape = RoundedCornerShape(10.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
+
                 Text(
-                    text = if (enabled) "روشن" else "خاموش",
-                    color = if (enabled) {
-                        WoodDark
-                    } else {
-                        Caramel.copy(alpha = 0.6f)
-                    },
+                    text =
+                        if (enabled) "روشن" else "خاموش",
+                    color =
+                        if (enabled) {
+                            WoodDark
+                        } else {
+                            Caramel.copy(alpha = 0.6f)
+                        },
                     fontFamily = NazaninFont,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
-
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(80),
-        label = "settings_button_press"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-            .scale(scale)
-            .background(WoodMedium)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = Caramel,
-            fontFamily = NazaninFont,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

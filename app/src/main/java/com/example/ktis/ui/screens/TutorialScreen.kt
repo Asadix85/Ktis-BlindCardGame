@@ -1,5 +1,6 @@
 package com.example.ktis.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,33 +23,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.fontResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ktis.R
-
-private val NazaninFont = FontFamily(
-    Font(R.font.nazanin, FontWeight.Normal)
-)
-
-private val Caramel = Color(0xFFD29A62)
-private val WoodDark = Color(0xFF4A2B18)
-private val WoodMedium = Color(0xFF6B3F22)
-private val WoodLight = Color(0xFF8A5835)
+import com.example.ktis.ui.components.WoodenButton
+import com.example.ktis.ui.theme.Caramel
+import com.example.ktis.ui.theme.NazaninFont
+import com.example.ktis.ui.theme.WoodDark
+import com.example.ktis.ui.theme.WoodMedium
 
 private data class TutorialPage(
     val title: String,
@@ -252,10 +241,12 @@ private val tutorialPages = listOf(
     )
 )
 
+
 @Composable
 fun TutorialScreen(
     onBack: () -> Unit
 ) {
+
     var currentPage by remember {
         mutableIntStateOf(0)
     }
@@ -265,6 +256,7 @@ fun TutorialScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+
         Image(
             painter = painterResource(
                 id = R.drawable.menu_wood_background
@@ -278,7 +270,13 @@ fun TutorialScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Color.Black.copy(alpha = 0.2f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.12f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
                 )
         )
 
@@ -291,6 +289,7 @@ fun TutorialScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Text(
                 text = "آموزش KTIS",
                 color = Caramel,
@@ -318,17 +317,23 @@ fun TutorialScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
-                        WoodDark.copy(alpha = 0.88f),
-                        RoundedCornerShape(18.dp)
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                WoodDark.copy(alpha = 0.92f),
+                                WoodMedium.copy(alpha = 0.92f)
+                            )
+                        )
                     )
                     .border(
-                        2.dp,
+                        1.dp,
                         Caramel.copy(alpha = 0.35f),
                         RoundedCornerShape(18.dp)
                     )
                     .padding(20.dp)
             ) {
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -337,6 +342,7 @@ fun TutorialScreen(
                         ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
                     Text(
                         text = page.title,
                         color = Caramel,
@@ -370,7 +376,8 @@ fun TutorialScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                TutorialButton(
+
+                WoodenButton(
                     text = "قبلی",
                     enabled = currentPage > 0,
                     onClick = {
@@ -381,7 +388,7 @@ fun TutorialScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                TutorialButton(
+                WoodenButton(
                     text = "بعدی",
                     enabled = currentPage < tutorialPages.lastIndex,
                     onClick = {
@@ -397,78 +404,11 @@ fun TutorialScreen(
                 modifier = Modifier.height(10.dp)
             )
 
-            TutorialButton(
+            WoodenButton(
                 text = "بازگشت",
-                enabled = true,
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                highlighted = true
             )
         }
-    }
-}
-
-@Composable
-private fun TutorialButton(
-    text: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier
-) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
-
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) {
-            0.96f
-        } else {
-            1f
-        },
-        animationSpec = tween(80),
-        label = "tutorial_button_press"
-    )
-
-    Box(
-        modifier = modifier
-            .height(54.dp)
-            .scale(scale)
-            .background(
-                if (enabled) {
-                    WoodMedium
-                } else {
-                    WoodDark.copy(alpha = 0.5f)
-                },
-                RoundedCornerShape(12.dp)
-            )
-            .border(
-                1.dp,
-                if (enabled) {
-                    Caramel.copy(alpha = 0.35f)
-                } else {
-                    Caramel.copy(alpha = 0.12f)
-                },
-                RoundedCornerShape(12.dp)
-            )
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (enabled) {
-                Caramel
-            } else {
-                Caramel.copy(alpha = 0.3f)
-            },
-            fontFamily = NazaninFont,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
