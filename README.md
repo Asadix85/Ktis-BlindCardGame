@@ -12,6 +12,8 @@ In each turn, players blindly draw a card from their own pile and place it face-
 
 ## ✨ Features
 
+### Gameplay
+
 - 🎮 Local multiplayer gameplay
 - 👥 2–8 players
 - 🃏 Standard 52-card deck
@@ -21,13 +23,27 @@ In each turn, players blindly draw a card from their own pile and place it face-
 - 🏆 Round winner calculation
 - ⚔️ Tie-breaking rounds
 - 🔁 Consecutive tie handling
+- 🤝 Final tie rule — remaining table cards are split evenly between tied players when no cards remain
 - 🏅 Card collection and scoring
 - 👑 Final winner calculation
 - 🎲 Final tie-break system
-- 📨 Request Card system
+
+### Experience
+
+- 💾 Save and continue support
+- 🎨 Unified wooden theme across all screens
+- ✨ Animated loading screen
+- 🎬 Smooth card animations (throw, rotation, landing)
+- 🔄 Rotating table with delayed turn transition
 - 📱 Pass-the-phone multiplayer flow
-- 🔄 Restart and new game
-- 🎨 Basic Android UI
+- 🔊 Sound effects and background music
+- 📳 Haptic feedback (vibration)
+
+### Settings
+
+- 🔊 Toggle sound
+- 🎵 Toggle music
+- 📳 Toggle vibration
 
 ---
 
@@ -55,16 +71,6 @@ Suits do not affect the result.
 
 ---
 
-## 📨 Request Card
-
-A player who is at least **2 cards behind** the player with the most remaining cards may request one random card.
-
-The card is randomly taken from one of the players who currently has the highest number of remaining cards.
-
-This mechanic can help a player who is falling behind return to the game.
-
----
-
 ## 🏆 Game Ending
 
 When all playable cards have been exhausted, each player's collected cards become their final score.
@@ -72,6 +78,10 @@ When all playable cards have been exhausted, each player's collected cards becom
 The player with the highest score wins.
 
 If the final score is tied, the tied players enter a final random tie-break to determine the winner.
+
+### Tie in the Final Round
+
+If the last round ends in a tie and the tied players have no cards left to play, the cards remaining on the table are split evenly between them as fractional scores (for example, 2.5 cards each).
 
 ---
 
@@ -93,11 +103,11 @@ Cards are distributed as evenly as possible. Any remaining cards that cannot be 
 
 ### Latest Release
 
-**Ktis v1.0.0 — Functional Prototype**
+**Ktis v1.5.0 — Local Polish**
 
-[⬇️ Download APK](../../releases/tag/v1.0.0)
+[⬇️ Download APK](../../releases/tag/v1.5.0)
 
-> This release contains the first functional version of the game.
+> A polished local release with save/continue, unified theme, animations, sound, and the final tie rule.
 
 ---
 
@@ -123,58 +133,126 @@ app/
     │   └── java/com/example/ktis/
     │       ├── domain/
     │       │   ├── model/
-    │       │   └── engine/
+    │       │   ├── engine/
+    │       │   │   ├── GameEngine.kt
+    │       │   │   ├── GameRules.kt
+    │       │   │   ├── GameResult.kt
+    │       │   │   ├── GameSaveMapper.kt
+    │       │   │   └── DeckBalancer.kt
+    │       │   └── save/
+    │       │       ├── GameSaveData.kt
+    │       │       └── SaveManager.kt
     │       ├── ui/
+    │       │   ├── audio/
     │       │   ├── components/
-    │       │   └── screens/
+    │       │   │   ├── CardView.kt
+    │       │   │   ├── PlayerView.kt
+    │       │   │   └── WoodenButton.kt
+    │       │   ├── screens/
+    │       │   │   ├── game/
+    │       │   │   │   ├── GameConstants.kt
+    │       │   │   │   ├── GameTopBar.kt
+    │       │   │   │   ├── MessageCard.kt
+    │       │   │   │   ├── TurnLabel.kt
+    │       │   │   │   ├── GameBottomButtons.kt
+    │       │   │   │   ├── CardCountLabel.kt
+    │       │   │   │   ├── PlayerCardStack.kt
+    │       │   │   │   ├── TableCard.kt
+    │       │   │   │   └── TableArea.kt
+    │       │   │   └── (menu screens)
+    │       │   └── theme/
+    │       │       ├── Color.kt
+    │       │       ├── Type.kt
+    │       │       ├── Dimens.kt
+    │       │       └── Theme.kt
     │       └── MainActivity.kt
     │
     └── test/
         └── java/com/example/ktis/
 ```
-        
-## 🚀 Version 1.0.0
 
-Status: Functional Prototype
+## 🚀 Version 1.5.0
+Status: Local Polish Release
 
-The main goal of version 1.0.0 is to provide a complete playable implementation of the core game rules.
+Version 1.5.0 focuses on polishing the local experience and adding the final missing gameplay rule.
 
-The gameplay system is functional, while the visual design is intentionally kept simple.
+### What's New in 1.5.0
+New Rules
+
+Tie in the final round is resolved by splitting the remaining table cards among tied players.
+
+Scores are now fractional (Float) to support this split.
+
+#### UI / UX
+
+Unified wooden theme across every screen.
+
+New animated loading screen (logo, brand typing, progress bar).
+
+Shared WoodenButton component with press animation.
+
+Improved Result screen with fractional scores and split notification.
+
+Delayed table rotation — card lands in front of the current player, then the table rotates.
+
+#### Game Animations
+
+Cards now face the center of the table.
+
+Cards from the same player land exactly on top of each other.
+
+Fixed card jumping during consecutive throws.
+
+#### Code Cleanup
+
+Extracted GameSaveMapper and DeckBalancer from GameEngine.
+
+Split GameScreen into focused components under ui/screens/game/.
+
+Consolidated colors and fonts under ui/theme/.
+
+### What's New in 1.0.0
+The first playable implementation of the core game rules.
 
 ### 🗺️ Roadmap
+Done in 1.5.0:
 
-Future versions may include:
+✅ Save and continue
+
+✅ Settings
+
+✅ Sound and music
+
+✅ Vibration
+
+✅ Animated loading
+
+✅ Improved visual design
+
+### Still planned:
+
+🎬 Drag and throw card interaction
 
 🎨 Custom card artwork
 
-✨ Improved visual design
-
-🎬 Better animations 
-
-🔊 Sound effects and music
-
-🌙 Improved themes
+🌙 Alternative themes
 
 📱 Improved responsive layouts
 
-🃏 More polished card interactions
-
 ⚙️ Additional game customization
 
-Online multiplayer and other major features may be considered separately in the future.
+🌐 Multi-device multiplayer (Bluetooth / Hotspot)
 
-### 📜 License
+🌐 Online multiplayer
 
+## 📜 License
 This project is currently a personal project.
 
 License information will be added in a future version.
 
-### 🌐 Language
+## 🌐 Language
 🇬🇧 English
 
 🇮🇷 فارسی
 
-Ktis — Draw a card. Trust your luck. 🍀🎴
-
-
----
+#### Ktis — Draw a card. Trust your luck. 🍀🎴
