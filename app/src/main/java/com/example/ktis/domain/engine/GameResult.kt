@@ -15,10 +15,56 @@ object GameResult {
             "Game is not over."
         }
 
+        /*
+         * ====================================================
+         * امتیاز پایه
+         * ====================================================
+         *
+         * امتیاز هر بازیکن از تعداد کارت‌های جمع‌شده
+         * محاسبه می‌شه. از Float استفاده می‌کنیم چون
+         * ممکنه توی حالت تقسیم کارت‌های باقی‌مانده،
+         * امتیاز اعشاری بشه (مثلاً ۲.۵).
+         */
         val scores =
-            state.players.associate {
-                it.id to it.score
+            state.players
+                .associate {
+                    it.id to it.score.toFloat()
+                }
+                .toMutableMap()
+
+        var sharedCardsApplied = false
+
+        /*
+         * ====================================================
+         * تقسیم کارت‌های باقی‌مانده در حالت مساوی پایان بازی
+         * ====================================================
+         *
+         * وقتی توی دور آخر، بازیکن‌های مساوی هیچ کارتی
+         * برای بازی کردن نداشتن، بازی با gameOver = true
+         * تموم شد و کارت‌های روی زمین توی centerPile
+         * باقی موندن.
+         *
+         * حالا این کارت‌ها رو به صورت مساوی بین
+         * بازیکن‌های مساوی تقسیم می‌کنیم (به شکل امتیاز
+         * اعشاری، نه کارت فیزیکی).
+         */
+        if (
+            state.tiedPlayerIds.isNotEmpty() &&
+            state.centerPile.isNotEmpty()
+        ) {
+
+            val sharedCards =
+                state.centerPile.size.toFloat() /
+                        state.tiedPlayerIds.size
+
+            state.tiedPlayerIds.forEach { playerId ->
+
+                scores[playerId] =
+                    (scores[playerId] ?: 0f) + sharedCards
             }
+
+            sharedCardsApplied = true
+        }
 
         val playerStats =
             state.players.associate { player ->
@@ -34,15 +80,20 @@ object GameResult {
             scores.values.maxOrNull()
                 ?: error("No players.")
 
-        val tiedPlayers =
-            state.players.filter {
-                it.score == highestScore
-            }
+        val tiedPlayerIds =
+            scores.filterValues {
+                it == highestScore
+            }.keys.toList()
 
-        if (tiedPlayers.size == 1) {
+        if (tiedPlayerIds.size == 1) {
+
+            val winnerId =
+                tiedPlayerIds.first()
 
             val winner =
-                tiedPlayers.first()
+                state.players.first {
+                    it.id == winnerId
+                }
 
             return FinalResult(
                 winnerId =
@@ -58,21 +109,35 @@ object GameResult {
                     playerStats,
 
                 isTieBroken =
-                    false
+                    false,
+
+                sharedCardsApplied =
+                    sharedCardsApplied
             )
         }
+
+        /*
+         * اگه هنوز بعد از تقسیم، چند نفر امتیاز برابر
+         * داشتن، با قرعه‌کشی نهایی برنده رو مشخص می‌کنیم.
+         */
+        val tiedPlayers =
+            state.players.filter {
+                it.id in tiedPlayerIds
+            }
 
         return breakFinalTie(
             tiedPlayers = tiedPlayers,
             scores = scores,
-            playerStats = playerStats
+            playerStats = playerStats,
+            sharedCardsApplied = sharedCardsApplied
         )
     }
 
     private fun breakFinalTie(
         tiedPlayers: List<Player>,
-        scores: Map<Int, Int>,
-        playerStats: Map<Int, PlayerStats>
+        scores: Map<Int, Float>,
+        playerStats: Map<Int, PlayerStats>,
+        sharedCardsApplied: Boolean
     ): FinalResult {
 
         val pool =
@@ -101,7 +166,10 @@ object GameResult {
                     playerStats,
 
                 isTieBroken =
-                    true
+                    true,
+
+                sharedCardsApplied =
+                    sharedCardsApplied
             )
         }
 
@@ -166,7 +234,10 @@ object GameResult {
                         playerStats,
 
                     isTieBroken =
-                        true
+                        true,
+
+                    sharedCardsApplied =
+                        sharedCardsApplied
                 )
             }
         }
@@ -188,7 +259,10 @@ object GameResult {
                 playerStats,
 
             isTieBroken =
-                true
+                true,
+
+            sharedCardsApplied =
+                sharedCardsApplied
         )
     }
 }

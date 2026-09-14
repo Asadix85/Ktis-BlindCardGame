@@ -1,6 +1,5 @@
 package com.example.ktis.ui.screens
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,8 +50,17 @@ fun LoadingScreen() {
 
     /*
      * ============================================================
-     * وضعیت‌های انیمیشن
+     * زمان‌بندی
      * ============================================================
+     *
+     * مجموع این تاخیرها باید یه کم کمتر از زمان
+     * انتظار توی MainActivity (2200ms) باشه.
+     *
+     *   0ms   → لوگو شروع می‌شه
+     *  400ms  → نام برند شروع می‌شه (تایپ)
+     * 1100ms  → نام بازی ظاهر می‌شه
+     * 1500ms  → نوار پیشرفت شروع می‌شه
+     * 2000ms  → همه‌چیز پر شده (کمی قبل از رفتن به منو)
      */
 
     var showLogo by remember {
@@ -74,16 +81,16 @@ fun LoadingScreen() {
 
     LaunchedEffect(Unit) {
 
-        delay(120)
+        delay(100)
         showLogo = true
 
-        delay(500)
+        delay(300)
         showBrandName = true
 
-        delay(400)
+        delay(700)
         showGameName = true
 
-        delay(300)
+        delay(400)
         showProgressBar = true
     }
 
@@ -91,8 +98,6 @@ fun LoadingScreen() {
      * ============================================================
      * پالس آروم روی لوگو
      * ============================================================
-     *
-     * یه نفس‌کشیدن خیلی ملایم که لوگو رو زنده نگه می‌داره.
      */
 
     val infiniteTransition =
@@ -120,6 +125,9 @@ fun LoadingScreen() {
      * ============================================================
      * پر شدن نوار پیشرفت
      * ============================================================
+     *
+     * از وقتی showProgressBar فعال می‌شه، ۵۰۰ میلی‌ثانیه
+     * طول می‌کشه تا نوار پر بشه و به انتها برسه.
      */
 
     val progress by
@@ -128,7 +136,7 @@ fun LoadingScreen() {
             if (showProgressBar) 1f else 0f,
         animationSpec =
             tween(
-                durationMillis = 1400,
+                durationMillis = 500,
                 easing = LinearEasing
             ),
         label = "loading_progress"
@@ -136,8 +144,10 @@ fun LoadingScreen() {
 
     /*
      * ============================================================
-     * تایپ‌شدن نام برند حرف به حرف
+     * تایپ شدن نام برند حرف به حرف
      * ============================================================
+     *
+     * هر حرف ۷۰ میلی‌ثانیه. برای ASADIX = ۶ حرف → ۴۲۰ میلی‌ثانیه.
      */
 
     val brandText = "ASADIX"
@@ -159,22 +169,14 @@ fun LoadingScreen() {
 
     /*
      * ============================================================
-     * پس‌زمینه‌ی مشکی با گرادینت خیلی ملایم
+     * پس‌زمینه - کامل مشکی
      * ============================================================
      */
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF1A1A1A),
-                        Color.Black
-                    ),
-                    radius = 1200f
-                )
-            ),
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
 
@@ -185,7 +187,7 @@ fun LoadingScreen() {
 
             /*
              * ====================================================
-             * لوگو با fade + scale
+             * لوگو
              * ====================================================
              */
 
@@ -230,7 +232,7 @@ fun LoadingScreen() {
 
             /*
              * ====================================================
-             * نام برند (تایپ حرف به حرف)
+             * نام برند
              * ====================================================
              */
 
@@ -255,7 +257,7 @@ fun LoadingScreen() {
 
             /*
              * ====================================================
-             * نام بازی با fade + slide از پایین
+             * نام بازی
              * ====================================================
              */
 
@@ -326,7 +328,7 @@ fun LoadingScreen() {
 
             /*
              * ====================================================
-             * متن کوچیک «در حال بارگذاری...»
+             * متن بارگذاری
              * ====================================================
              */
 
@@ -335,9 +337,7 @@ fun LoadingScreen() {
                 targetValue =
                     if (showProgressBar) 0.7f else 0f,
                 animationSpec =
-                    tween(
-                        durationMillis = 400
-                    ),
+                    tween(durationMillis = 400),
                 label = "loading_text_alpha"
             )
 
@@ -351,15 +351,15 @@ fun LoadingScreen() {
                 letterSpacing = 1.sp
             )
 
+            Spacer(
+                modifier = Modifier.height(6.dp)
+            )
+
             /*
              * ====================================================
              * نسخه
              * ====================================================
              */
-
-            Spacer(
-                modifier = Modifier.height(6.dp)
-            )
 
             Text(
                 text = "v1.0",

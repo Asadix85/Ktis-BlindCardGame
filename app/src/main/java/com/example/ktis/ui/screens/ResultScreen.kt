@@ -71,7 +71,7 @@ fun ResultScreen(
     val sortedScores =
         result.scores.entries
             .sortedWith(
-                compareByDescending<Map.Entry<Int, Int>> {
+                compareByDescending<Map.Entry<Int, Float>> {
                     it.value
                 }.thenBy {
                     it.key
@@ -82,10 +82,10 @@ fun ResultScreen(
         result.scores.values.sum()
 
     val winnerScore =
-        result.scores[result.winnerId] ?: 0
+        result.scores[result.winnerId] ?: 0f
 
     val winnerPercentage =
-        if (totalCards > 0) {
+        if (totalCards > 0f) {
             (winnerScore * 100f) / totalCards
         } else {
             0f
@@ -104,9 +104,6 @@ fun ResultScreen(
             contentScale = ContentScale.Crop
         )
 
-        /*
-         * گرادینت overlay - مثل بقیه‌ی صفحه‌ها
-         */
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -186,7 +183,7 @@ fun ResultScreen(
 
                     Text(
                         text =
-                            "$winnerScore کارت  •  ${
+                            "${formatScore(winnerScore)} کارت  •  ${
                                 String.format(
                                     "%.1f",
                                     winnerPercentage
@@ -198,6 +195,22 @@ fun ResultScreen(
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
+
+                    if (result.sharedCardsApplied) {
+
+                        Spacer(
+                            modifier = Modifier.height(5.dp)
+                        )
+
+                        Text(
+                            text =
+                                "🤝 کارت‌های باقی‌مانده بین بازیکنان مساوی تقسیم شد",
+                            color = Caramel,
+                            fontFamily = NazaninFont,
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
                     if (result.isTieBroken) {
 
@@ -234,7 +247,7 @@ fun ResultScreen(
             )
 
             Text(
-                text = "کل کارت‌های جمع‌شده: $totalCards",
+                text = "کل کارت‌های جمع‌شده: ${formatScore(totalCards)}",
                 color = Caramel.copy(alpha = 0.82f),
                 fontFamily = NazaninFont,
                 fontSize = 15.sp
@@ -265,7 +278,7 @@ fun ResultScreen(
                             ?: "بازیکن ${entry.key + 1}"
 
                     val percentage =
-                        if (totalCards > 0) {
+                        if (totalCards > 0f) {
                             (entry.value * 100f) /
                                     totalCards
                         } else {
@@ -317,6 +330,24 @@ fun ResultScreen(
 
 /*
  * ============================================================
+ * فرمت کردن امتیاز
+ * ============================================================
+ *
+ * اگه عدد صحیح بود، فقط عدد صحیح رو نشون بده (مثلاً «۵»).
+ * اگه اعشار داشت، با یه رقم اعشار نشون بده (مثلاً «۲.۵»).
+ */
+private fun formatScore(score: Float): String {
+
+    return if (score % 1f == 0f) {
+        score.toInt().toString()
+    } else {
+        String.format("%.1f", score)
+    }
+}
+
+
+/*
+ * ============================================================
  * ردیف امتیاز هر بازیکن
  * ============================================================
  */
@@ -324,7 +355,7 @@ fun ResultScreen(
 private fun ScoreRow(
     rank: Int,
     name: String,
-    score: Int,
+    score: Float,
     percentage: Float,
     roundWins: Int,
     tieCount: Int,
@@ -441,7 +472,7 @@ private fun ScoreRow(
                     }
 
                     Text(
-                        text = "$score کارت",
+                        text = "${formatScore(score)} کارت",
                         color = textColor,
                         fontFamily = NazaninFont,
                         fontSize = 18.sp,

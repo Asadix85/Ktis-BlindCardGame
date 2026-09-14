@@ -235,6 +235,46 @@ class GameEngine {
             GameRules.highestPlayers(latestCards)
 
         if (highest.size > 1) {
+
+            /*
+             * چک کن که آیا همه‌ی بازیکن‌های مساوی
+             * دیگه کارتی برای بازی کردن ندارن.
+             *
+             * اگه همه خالی باشن، دیگه نمی‌تونیم
+             * tie رو ادامه بدیم. بازی تموم می‌شه و
+             * امتیاز کارت‌های روی زمین توی
+             * GameResult بینشون تقسیم می‌شه.
+             */
+            val allTiedPlayersAreEmpty =
+                highest.all { playerId ->
+                    current.players
+                        .first { it.id == playerId }
+                        .drawPile
+                        .isEmpty()
+                }
+
+            if (allTiedPlayersAreEmpty) {
+
+                /*
+                 * بازی رو تموم کن.
+                 *
+                 * tiedPlayerIds و centerPile رو
+                 * دست‌نخورده نگه می‌داریم تا
+                 * GameResult بتونه ازشون استفاده کنه.
+                 */
+                state =
+                    current.copy(
+                        gameOver = true,
+                        roundNumber =
+                            current.roundNumber + 1
+                    )
+
+                return null
+            }
+
+            /*
+             * وگرنه، رفتار قبلی: tie ادامه پیدا می‌کنه.
+             */
             return handleTie(current, highest)
         }
 

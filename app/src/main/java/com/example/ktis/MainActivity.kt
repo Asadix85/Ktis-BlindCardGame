@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            delay(1500)
+            delay(2000)
 
             hasSavedGame =
                 saveManager.hasSavedGame()
