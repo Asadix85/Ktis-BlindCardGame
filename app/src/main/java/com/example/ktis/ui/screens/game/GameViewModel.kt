@@ -249,9 +249,15 @@ class GameViewModel(
             saveCurrentGame()
 
             val afterPlay = gameEngine.getState()
+            val playerWhoPlayed =
+                afterPlay.players.first { it.id == playerId }
 
             message =
-                "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
+                if (playerWhoPlayed.isAI) {
+                    "${playerWhoPlayed.name} کارت انداخت! 🤖"
+                } else {
+                    "${playerWhoPlayed.name} کارت انداخت! 🃏"
+                }
 
             audioManager.playCardPlace()
 
@@ -336,9 +342,12 @@ class GameViewModel(
             resolvedState.players.first {
                 it.id == winnerId
             }
-
         message =
-            "${winnerPlayer.name} این دست رو برد! 🏆"
+            if (winnerPlayer.isAI) {
+                "${winnerPlayer.name} این دست رو برد! 🏆🤖"
+            } else {
+                "${winnerPlayer.name} این دست رو برد! 🏆"
+            }
 
         audioManager.playRoundWin()
 
@@ -493,13 +502,13 @@ class GameViewModel(
 
         aiLoopJob = viewModelScope.launch {
 
-            /*
-             * تأخیر کوتاه قبل از حرکت AI.
-             *
-             * بعداً می‌تونیم تصادفی کنیم.
-             */
-            delay(GameConstants.AIDelayMillis)
+            val delayMillis =
+                kotlin.random.Random.nextLong(
+                    GameConstants.AIDelayMinMillis,
+                    GameConstants.AIDelayMaxMillis
+                )
 
+            delay(delayMillis)
             /*
              * دوباره چک کن که هنوز نوبت AI هست.
              */

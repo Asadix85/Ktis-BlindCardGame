@@ -167,13 +167,14 @@ fun TableArea(
                         card = playedCard.card,
                         playerId = playedCard.playerId,
                         cardIndex = index,
+                        totalCards = visibleCenterPile.size,
                         playerPosition = playerPosition,
                         playerCount = playerCount,
                         cardLandingRadiusPx = cardLandingRadiusPx,
                         throwStartRadiusPx = throwStartRadiusPx,
                         isWinner = highlightedWinnerId == player.id,
                         isTied = isTiedCard,
-                        animateDrop = animateCenterCards
+                        animateCenterCards = animateCenterCards
                     )
                 }
             }

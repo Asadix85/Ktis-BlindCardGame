@@ -32,41 +32,20 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 
-/*
- * ============================================================
- * کارت روی میز
- * ============================================================
- *
- * هر کارت رو به مرکز میز قرار می‌گیره:
- *
- * position 0 (بازیکن پایین، 0°):
- *       کارت صاف، سر به بالا (مرکز)
- *
- * position 1 (بازیکن پایین-راست، 72°):
- *       کارت 72 درجه چرخیده، سر رو به بالا-چپ (مرکز)
- *
- * position 2 (بازیکن راست، 144°):
- *       کارت 144 درجه چرخیده، سر رو به چپ (مرکز)
- *
- * و الی آخر.
- *
- * چرخش فقط با Modifier.rotate اعمال می‌شه.
- * CardView همیشه throwAngle = 0f و animateThrow = false
- * می‌گیره تا چرخش داخلی خودش رو اضافه نکنه.
- */
 @Composable
 fun TableCard(
     modifier: Modifier = Modifier,
     card: Card,
     playerId: Int,
     cardIndex: Int,
+    totalCards: Int,
     playerPosition: Int,
     playerCount: Int,
     cardLandingRadiusPx: Float,
     throwStartRadiusPx: Float,
     isWinner: Boolean,
     isTied: Boolean,
-    animateDrop: Boolean
+    animateCenterCards: Boolean
 ) {
 
     val animationKey =
@@ -75,16 +54,22 @@ fun TableCard(
                 "${card.rank.name}-" +
                 "$cardIndex"
 
+    val isNewestCard =
+        cardIndex == totalCards - 1
+
+    val shouldAnimate =
+        animateCenterCards && isNewestCard
+
     val dropProgress =
         remember(animationKey) {
             Animatable(
-                if (animateDrop) 0f else 1f
+                if (shouldAnimate) 0f else 1f
             )
         }
 
-    LaunchedEffect(animationKey, animateDrop) {
+    LaunchedEffect(animationKey, shouldAnimate) {
 
-        if (animateDrop) {
+        if (shouldAnimate) {
 
             dropProgress.snapTo(0f)
 
@@ -120,30 +105,15 @@ fun TableCard(
         throwStartRadiusPx +
                 (cardLandingRadiusPx - throwStartRadiusPx) * progress
 
-    /*
-     * چیدمان ساعتگرد.
-     */
     val x =
         -currentRadius * sin(angleRad)
 
     val y =
         currentRadius * cos(angleRad)
 
-    /*
-     * زاویه‌ی نهایی کارت.
-     *
-     * برابر با زاویه‌ی موقعیت بازیکن، تا سر کارت
-     * رو به مرکز میز بشینه.
-     */
     val finalRotationDeg =
         playerAngleDeg
 
-    /*
-     * چرخش اولیه‌ی پرتاب.
-     *
-     * صفر است تا کارت صاف شروع کنه و در حین پرتاب
-     * به زاویه‌ی نهایی بچرخه.
-     */
     val throwSpinStart =
         0f
 
@@ -247,14 +217,8 @@ fun TableCard(
             card = card,
             isWinner = isWinner,
             isTied = isTied,
-
-            /*
-             * CardView هیچ چرخش داخلی نگیره.
-             * چرخش رو خودمون با Modifier.rotate می‌دیم.
-             */
             throwAngle = 0f,
             animateThrow = false,
-
             modifier = Modifier
                 .width(GameConstants.CenterCardWidth)
                 .scale(finalScale)

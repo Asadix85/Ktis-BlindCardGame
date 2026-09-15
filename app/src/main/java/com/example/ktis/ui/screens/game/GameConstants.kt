@@ -24,8 +24,8 @@ object GameConstants {
     const val TieScaleDuration = 500
     const val StackPressDuration = 100
     const val StackThrowHopDuration = 240
-    const val AIDelayMillis = 600L
-
+    const val AIDelayMinMillis = 500L
+    const val AIDelayMaxMillis = 1200L
     const val DropStartScale = 0.55f
     const val DropEndScale = 1f
     const val WinnerScale = 1.08f
