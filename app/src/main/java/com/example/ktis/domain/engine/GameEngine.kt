@@ -39,7 +39,8 @@ class GameEngine {
             playersSetup.mapIndexed { index, player ->
                 PlayerSetup(
                     name = player.name.trim(),
-                    seat = index
+                    seat = index,
+                    isAI = player.isAI
                 )
             }
 
@@ -68,7 +69,8 @@ class GameEngine {
                 Player(
                     id = index,
                     name = setup.name,
-                    seat = setup.seat
+                    seat = setup.seat,
+                    isAI = setup.isAI
                 )
             }
 

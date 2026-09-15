@@ -76,40 +76,55 @@ fun GameScreen(
      * چرخش میز
      * ========================================================
      */
-    var rotationTarget by remember(playerCount) {
+    var lastHumanPosition by remember(playerCount) {
         mutableStateOf(
-            -currentPlayerPosition * angleStep
+            if (state.currentPlayer.isAI) {
+                currentPlayerPosition
+            } else {
+                currentPlayerPosition
+            }
         )
     }
 
-    var previousPlayerPosition by remember(playerCount) {
-        mutableStateOf(currentPlayerPosition)
+    var rotationTarget by remember(playerCount) {
+        mutableStateOf(
+            -lastHumanPosition * angleStep
+        )
     }
 
     LaunchedEffect(
-        currentPlayerPosition,
+        state.currentPlayer.id,
+        state.currentPlayer.isAI,
         playerCount
     ) {
 
-        if (currentPlayerPosition != previousPlayerPosition) {
-
-            val difference =
-                (
-                        currentPlayerPosition -
-                                previousPlayerPosition +
-                                playerCount
-                        ) % playerCount
-
-            delay(
-                timeMillis = GameConstants.RotationDelayMillis
-            )
-
-            rotationTarget -=
-                difference * angleStep
-
-            previousPlayerPosition =
-                currentPlayerPosition
+        /*
+         * اگه نوبت AI هست، میز رو نچرخون.
+         */
+        if (state.currentPlayer.isAI) {
+            return@LaunchedEffect
         }
+
+        if (currentPlayerPosition == lastHumanPosition) {
+            return@LaunchedEffect
+        }
+
+        val difference =
+            (
+                    currentPlayerPosition -
+                            lastHumanPosition +
+                            playerCount
+                    ) % playerCount
+
+        delay(
+            timeMillis = GameConstants.RotationDelayMillis
+        )
+
+        rotationTarget -=
+            difference * angleStep
+
+        lastHumanPosition =
+            currentPlayerPosition
     }
 
     val tableRotation by animateFloatAsState(
@@ -218,7 +233,8 @@ fun GameScreen(
             )
 
             TurnLabel(
-                playerName = state.currentPlayer.name
+                playerName = state.currentPlayer.name,
+                isAI = state.currentPlayer.isAI
             )
 
             Spacer(

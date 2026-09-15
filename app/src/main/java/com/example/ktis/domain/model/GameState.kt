@@ -17,4 +17,7 @@ data class GameState(
 
     val totalCollectedCards: Int
         get() = players.sumOf { it.score }
+
+    val currentPlayerIsAI: Boolean
+        get() = currentPlayer.isAI
 }

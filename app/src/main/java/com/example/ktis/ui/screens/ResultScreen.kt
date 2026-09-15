@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 fun ResultScreen(
     result: FinalResult,
     playerNames: Map<Int, String>,
+    playerIsAI: Map<Int, Boolean>,
     onNewGame: () -> Unit,
     onMenu: () -> Unit
 ) {
@@ -292,6 +293,8 @@ fun ResultScreen(
                     ScoreRow(
                         rank = index + 1,
                         name = name,
+                        isAI =
+                            playerIsAI[entry.key] ?: false,
                         score = entry.value,
                         percentage = percentage,
                         roundWins = stats.roundWins,
@@ -355,6 +358,7 @@ private fun formatScore(score: Float): String {
 private fun ScoreRow(
     rank: Int,
     name: String,
+    isAI: Boolean,
     score: Float,
     percentage: Float,
     roundWins: Int,
@@ -458,7 +462,12 @@ private fun ScoreRow(
                         )
 
                         Text(
-                            text = name,
+                            text =
+                                if (isAI) {
+                                    "$name 🤖"
+                                } else {
+                                    name
+                                },
                             color = textColor,
                             fontFamily = NazaninFont,
                             fontSize = 20.sp,

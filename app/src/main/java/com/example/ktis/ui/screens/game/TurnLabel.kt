@@ -9,15 +9,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.ktis.ui.theme.CarpetGold
 
-
 @Composable
 fun TurnLabel(
     playerName: String,
+    isAI: Boolean,
     modifier: Modifier = Modifier
 ) {
 
+    val displayName =
+        if (isAI) {
+            "$playerName 🤖"
+        } else {
+            playerName
+        }
+
     Text(
-        text = "نوبت: $playerName",
+        text = "نوبت: $displayName",
         modifier = modifier.fillMaxWidth(),
         textAlign = TextAlign.Center,
         color = CarpetGold,

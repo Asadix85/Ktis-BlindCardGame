@@ -4,6 +4,7 @@ data class Player(
     val id: Int,
     val name: String,
     val seat: Int,
+    val isAI: Boolean = false,
     val drawPile: MutableList<Card> = mutableListOf(),
     val collectedCards: MutableList<Card> = mutableListOf()
 ) {

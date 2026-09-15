@@ -9,13 +9,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.ktis.domain.engine.GameEngine
-import com.example.ktis.domain.engine.GameResult
-import com.example.ktis.domain.model.FinalResult
-import com.example.ktis.domain.model.PlayedCard
 import com.example.ktis.domain.save.SaveManager
 import com.example.ktis.ui.audio.KtisAudioManager
+import com.example.ktis.ui.game.GameViewModel
+import com.example.ktis.ui.game.GameViewModelFactory
 import com.example.ktis.ui.screens.GameModeScreen
 import com.example.ktis.ui.screens.GameScreen
 import com.example.ktis.ui.screens.LoadingScreen
@@ -29,14 +29,16 @@ import com.example.ktis.ui.theme.KtisTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+
 class MainActivity : ComponentActivity() {
 
-    private val gameEngine =
-        GameEngine()
+    private val gameEngine = GameEngine()
 
-    private val saveManager by lazy {
-        SaveManager(applicationContext)
-    }
+    private lateinit var saveManager: SaveManager
+
+    private lateinit var audioManager: KtisAudioManager
+
+    private lateinit var gameViewModel: GameViewModel
 
     private val settingsPreferences by lazy {
         getSharedPreferences(
@@ -45,38 +47,8 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private lateinit var audioManager: KtisAudioManager
-
     private var currentScreen by
     mutableStateOf(Screen.LOADING)
-
-    private var gameState by
-    mutableStateOf(
-        gameEngineStateOrNull()
-    )
-
-    private var message by
-    mutableStateOf("")
-
-    private var highlightedWinnerId by
-    mutableStateOf<Int?>(null)
-
-    private var visibleCenterPile by
-    mutableStateOf<List<PlayedCard>>(
-        emptyList()
-    )
-
-    private var animateCenterCards by
-    mutableStateOf(true)
-
-    private var finalResult by
-    mutableStateOf<FinalResult?>(null)
-
-    private var isActionLocked by
-    mutableStateOf(false)
-
-    private var hasSavedGame by
-    mutableStateOf(false)
 
     private var soundEnabled by
     mutableStateOf(true)
@@ -94,25 +66,30 @@ class MainActivity : ComponentActivity() {
 
         loadSettings()
 
-        audioManager =
-            KtisAudioManager(
-                applicationContext
-            )
+        saveManager = SaveManager(applicationContext)
 
-        audioManager.setSoundEnabled(
-            soundEnabled
-        )
+        audioManager = KtisAudioManager(applicationContext)
 
-        audioManager.setMusicEnabled(
-            musicEnabled
-        )
+        audioManager.setSoundEnabled(soundEnabled)
+        audioManager.setMusicEnabled(musicEnabled)
+        audioManager.setVibrationEnabled(vibrationEnabled)
 
-        audioManager.setVibrationEnabled(
-            vibrationEnabled
-        )
+        gameViewModel =
+            ViewModelProvider(
+                this,
+                GameViewModelFactory(
+                    gameEngine = gameEngine,
+                    saveManager = saveManager,
+                    audioManager = audioManager
+                )
+            )[GameViewModel::class.java]
 
-        hasSavedGame =
-            saveManager.hasSavedGame()
+        /*
+         * وقتی بازی تموم شد، برو به Result.
+         */
+        gameViewModel.onGameOver = {
+            currentScreen = Screen.RESULT
+        }
 
         setContent {
             KtisTheme {
@@ -123,13 +100,8 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            delay(2000)
-
-            hasSavedGame =
-                saveManager.hasSavedGame()
-
-            currentScreen =
-                Screen.MENU
+            delay(2200)
+            currentScreen = Screen.MENU
         }
     }
 
@@ -137,10 +109,9 @@ class MainActivity : ComponentActivity() {
         super.onStop()
 
         if (
-            currentScreen == Screen.GAME &&
-            gameState != null
+            currentScreen == Screen.GAME
         ) {
-            saveCurrentGame()
+            gameViewModel.saveCurrentGame()
         }
     }
 
@@ -175,27 +146,16 @@ class MainActivity : ComponentActivity() {
             Screen.MENU -> {
                 MainMenuScreen(
                     onStart = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.GAME_MODE
+                        currentScreen = Screen.GAME_MODE
                     },
-
                     onSettings = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.SETTINGS
+                        currentScreen = Screen.SETTINGS
                     },
-
                     onTutorial = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.TUTORIAL
+                        currentScreen = Screen.TUTORIAL
                     }
                 )
             }
@@ -203,113 +163,79 @@ class MainActivity : ComponentActivity() {
             Screen.GAME_MODE -> {
                 GameModeScreen(
                     onLocalGame = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.LOCAL_GAME
+                        currentScreen = Screen.LOCAL_GAME
                     },
-
                     onDeviceGame = {
                         // Reserved for future
-                        // Bluetooth / Hotspot multiplayer.
                     },
-
                     onOnlineGame = {
                         // Reserved for future
-                        // Internet multiplayer.
                     },
-
                     onBack = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.MENU
+                        currentScreen = Screen.MENU
                     }
                 )
             }
 
             Screen.LOCAL_GAME -> {
                 LocalGameMenuScreen(
-                    continueEnabled =
-                        hasSavedGame,
+                    continueEnabled = gameViewModel.hasSavedGame,
 
                     onNewGame = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.SETUP
+                        currentScreen = Screen.SETUP
                     },
 
                     onContinue = {
-
                         audioManager.playButtonClick()
 
-                        continueSavedGame()
+                        val wentToGame =
+                            gameViewModel.continueSavedGame()
+
+                        currentScreen =
+                            if (wentToGame) {
+                                Screen.GAME
+                            } else {
+                                Screen.RESULT
+                            }
                     },
 
                     onBack = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.GAME_MODE
+                        currentScreen = Screen.GAME_MODE
                     }
                 )
             }
 
             Screen.SETTINGS -> {
                 SettingsScreen(
-                    soundEnabled =
-                        soundEnabled,
-
-                    musicEnabled =
-                        musicEnabled,
-
-                    vibrationEnabled =
-                        vibrationEnabled,
+                    soundEnabled = soundEnabled,
+                    musicEnabled = musicEnabled,
+                    vibrationEnabled = vibrationEnabled,
 
                     onSoundChanged = {
-
                         soundEnabled = it
-
-                        audioManager.setSoundEnabled(
-                            it
-                        )
-
+                        audioManager.setSoundEnabled(it)
                         saveSettings()
                     },
 
                     onMusicChanged = {
-
                         musicEnabled = it
-
-                        audioManager.setMusicEnabled(
-                            it
-                        )
-
+                        audioManager.setMusicEnabled(it)
                         saveSettings()
                     },
 
                     onVibrationChanged = {
-
                         vibrationEnabled = it
-
-                        audioManager.setVibrationEnabled(
-                            it
-                        )
-
+                        audioManager.setVibrationEnabled(it)
                         saveSettings()
                     },
 
                     onBack = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.MENU
+                        currentScreen = Screen.MENU
                     }
                 )
             }
@@ -317,11 +243,8 @@ class MainActivity : ComponentActivity() {
             Screen.TUTORIAL -> {
                 TutorialScreen(
                     onBack = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.MENU
+                        currentScreen = Screen.MENU
                     }
                 )
             }
@@ -329,325 +252,55 @@ class MainActivity : ComponentActivity() {
             Screen.SETUP -> {
                 SetupGameScreen(
                     onStartGame = { players ->
-
                         audioManager.playButtonClick()
 
-                        gameState =
-                            gameEngine.startGame(
-                                players
-                            )
+                        gameViewModel.startNewGame(players)
 
-                        message = ""
-
-                        highlightedWinnerId =
-                            null
-
-                        visibleCenterPile =
-                            emptyList()
-
-                        animateCenterCards =
-                            true
-
-                        finalResult =
-                            null
-
-                        isActionLocked =
-                            false
-
-                        saveCurrentGame()
-
-                        currentScreen =
-                            Screen.GAME
+                        currentScreen = Screen.GAME
                     },
 
                     onBack = {
-
                         audioManager.playButtonClick()
-
-                        currentScreen =
-                            Screen.LOCAL_GAME
+                        currentScreen = Screen.LOCAL_GAME
                     }
                 )
             }
 
             Screen.GAME -> {
 
-                val state =
-                    gameState
+                val state = gameViewModel.gameState
 
                 if (state != null) {
-
-                    val playerId =
-                        state.currentPlayer.id
 
                     GameScreen(
                         state = state,
 
                         visibleCenterPile =
-                            visibleCenterPile,
+                            gameViewModel.visibleCenterPile,
 
                         animateCenterCards =
-                            animateCenterCards,
+                            gameViewModel.animateCenterCards,
 
                         message =
-                            message,
+                            gameViewModel.message,
 
                         highlightedWinnerId =
-                            highlightedWinnerId,
+                            gameViewModel.highlightedWinnerId,
 
                         onDrawCard = {
-
-                            if (isActionLocked) {
-                                return@GameScreen
-                            }
-
-                            isActionLocked =
-                                true
-
-                            if (
-                                state.currentPlayer
-                                    .remainingCards <= 0
-                            ) {
-
-                                isActionLocked =
-                                    false
-
-                                return@GameScreen
-                            }
-
-                            try {
-
-                                audioManager.playCardDraw()
-
-                                gameEngine.playCard()
-
-                                gameState =
-                                    gameEngine.getState()
-
-                                visibleCenterPile =
-                                    gameEngine
-                                        .getState()
-                                        .centerPile
-                                        .toList()
-
-                                /*
-                                 * فقط کارت تازه‌انداخته‌شده
-                                 * باید انیمیشن پرتاب داشته باشه.
-                                 *
-                                 * بعد از ۴۵۰ میلی‌ثانیه که
-                                 * انیمیشن پرتاب تموم شد،
-                                 * animateCenterCards رو false
-                                 * می‌کنیم تا کارت‌های قبلی
-                                 * دوباره انیمیت نشن.
-                                 */
-                                animateCenterCards =
-                                    true
-
-                                lifecycleScope.launch {
-
-                                    delay(450)
-
-                                    animateCenterCards =
-                                        false
-                                }
-
-                                saveCurrentGame()
-
-                                val afterPlay =
-                                    gameEngine.getState()
-
-                                message =
-                                    "${afterPlay.players.first { it.id == playerId }.name} کارت انداخت! 🃏"
-
-                                audioManager.playCardPlace()
-
-                                if (
-                                    !gameEngine
-                                        .isRoundComplete()
-                                ) {
-
-                                    lifecycleScope.launch {
-
-                                        delay(800)
-
-                                        isActionLocked =
-                                            false
-                                    }
-
-                                    return@GameScreen
-                                }
-
-                                lifecycleScope.launch {
-
-                                    try {
-
-                                        delay(900)
-
-                                        animateCenterCards =
-                                            false
-
-                                        val winner =
-                                            gameEngine
-                                                .resolveRound()
-
-                                        val resolved =
-                                            gameEngine
-                                                .getState()
-
-                                        gameState =
-                                            resolved
-
-                                        saveCurrentGame()
-
-                                        if (
-                                            winner != null
-                                        ) {
-
-                                            highlightedWinnerId =
-                                                winner
-
-                                            val winnerPlayer =
-                                                resolved.players
-                                                    .first {
-                                                        it.id == winner
-                                                    }
-
-                                            message =
-                                                "${winnerPlayer.name} این دست رو برد! 🏆"
-
-                                            audioManager.playRoundWin()
-
-                                            delay(1500)
-
-                                            highlightedWinnerId =
-                                                null
-
-                                            visibleCenterPile =
-                                                emptyList()
-
-                                            animateCenterCards =
-                                                true
-
-                                            val updated =
-                                                gameEngine
-                                                    .getState()
-
-                                            gameState =
-                                                updated
-
-                                            if (
-                                                updated.gameOver
-                                            ) {
-
-                                                finalResult =
-                                                    GameResult.calculate(
-                                                        updated
-                                                    )
-
-                                                saveManager.delete()
-
-                                                hasSavedGame =
-                                                    false
-
-                                                currentScreen =
-                                                    Screen.RESULT
-
-                                                isActionLocked =
-                                                    false
-
-                                            } else {
-
-                                                message =
-                                                    ""
-
-                                                currentScreen =
-                                                    Screen.GAME
-
-                                                isActionLocked =
-                                                    false
-                                            }
-
-                                        } else {
-
-                                            val tieState =
-                                                gameEngine
-                                                    .getState()
-
-                                            gameState =
-                                                tieState
-
-                                            saveCurrentGame()
-
-                                            message =
-                                                "مساوی! ⚔️ فقط بازیکن‌های مساوی ادامه میدن."
-
-                                            audioManager.playTie()
-
-                                            visibleCenterPile =
-                                                tieState
-                                                    .centerPile
-                                                    .toList()
-
-                                            animateCenterCards =
-                                                false
-
-                                            delay(1000)
-
-                                            message =
-                                                ""
-
-                                            animateCenterCards =
-                                                true
-
-                                            currentScreen =
-                                                Screen.GAME
-
-                                            isActionLocked =
-                                                false
-                                        }
-
-                                    } catch (_: Exception) {
-
-                                        isActionLocked =
-                                            false
-                                    }
-                                }
-
-                            } catch (_: Exception) {
-
-                                isActionLocked =
-                                    false
-                            }
+                            gameViewModel.performMove()
                         },
 
                         onShuffle = {
-
-                            if (isActionLocked) {
-                                return@GameScreen
-                            }
-
-                            audioManager.playButtonClick()
-
-                            gameEngine
-                                .shuffleBalanceDeck()
-
-                            saveCurrentGame()
-
-                            message =
-                                "کارت‌ها بر زده شدند! 🔀"
+                            gameViewModel.shuffle()
                         },
 
                         onBack = {
-
                             audioManager.playButtonClick()
 
-                            saveCurrentGame()
+                            gameViewModel.onBackToMenu()
 
-                            isActionLocked =
-                                false
-
-                            currentScreen =
-                                Screen.LOCAL_GAME
+                            currentScreen = Screen.LOCAL_GAME
                         }
                     )
                 }
@@ -655,164 +308,47 @@ class MainActivity : ComponentActivity() {
 
             Screen.RESULT -> {
 
-                val result =
-                    finalResult
+                val result = gameViewModel.finalResult
 
                 if (result != null) {
 
                     val names =
-                        gameState
+                        gameViewModel
+                            .gameState
                             ?.players
                             ?.associate {
                                 it.id to it.name
                             }
                             ?: emptyMap()
 
+                    val isAIMap =
+                        gameViewModel
+                            .gameState
+                            ?.players
+                            ?.associate {
+                                it.id to it.isAI
+                            }
+                            ?: emptyMap()
+
                     ResultScreen(
                         result = result,
 
-                        playerNames =
-                            names,
+                        playerNames = names,
+
+                        playerIsAI = isAIMap,
 
                         onNewGame = {
-
                             audioManager.playButtonClick()
-
-                            isActionLocked =
-                                false
-
-                            currentScreen =
-                                Screen.SETUP
+                            currentScreen = Screen.SETUP
                         },
 
                         onMenu = {
-
                             audioManager.playButtonClick()
-
-                            isActionLocked =
-                                false
-
-                            currentScreen =
-                                Screen.MENU
+                            currentScreen = Screen.MENU
                         }
                     )
                 }
             }
-        }
-    }
-
-    private fun saveCurrentGame() {
-
-        try {
-
-            if (
-                gameEngineStateOrNull() == null
-            ) {
-                return
-            }
-
-            saveManager.save(
-                gameEngine.createSaveData()
-            )
-
-            hasSavedGame =
-                true
-
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun continueSavedGame() {
-
-        try {
-
-            val saveData =
-                saveManager.load()
-
-            if (saveData == null) {
-
-                hasSavedGame =
-                    false
-
-                return
-            }
-
-            gameState =
-                gameEngine.restoreFromSave(
-                    saveData
-                )
-
-            message = ""
-
-            highlightedWinnerId =
-                null
-
-            visibleCenterPile =
-                gameState
-                    ?.centerPile
-                    ?.toList()
-                    ?: emptyList()
-
-            animateCenterCards =
-                false
-
-            finalResult =
-                null
-
-            isActionLocked =
-                false
-
-            currentScreen =
-                if (
-                    gameState?.gameOver == true
-                ) {
-
-                    finalResult =
-                        GameResult.calculate(
-                            gameState!!
-                        )
-
-                    saveManager.delete()
-
-                    hasSavedGame =
-                        false
-
-                    Screen.RESULT
-
-                } else {
-
-                    hasSavedGame =
-                        true
-
-                    Screen.GAME
-                }
-
-        } catch (_: Exception) {
-
-            saveManager.delete()
-
-            hasSavedGame =
-                false
-
-            gameState =
-                null
-
-            message = ""
-
-            highlightedWinnerId =
-                null
-
-            visibleCenterPile =
-                emptyList()
-
-            finalResult =
-                null
-
-            isActionLocked =
-                false
-
-            currentScreen =
-                Screen.MENU
         }
     }
 
@@ -841,27 +377,11 @@ class MainActivity : ComponentActivity() {
 
         settingsPreferences
             .edit()
-            .putBoolean(
-                KEY_SOUND_ENABLED,
-                soundEnabled
-            )
-            .putBoolean(
-                KEY_MUSIC_ENABLED,
-                musicEnabled
-            )
-            .putBoolean(
-                KEY_VIBRATION_ENABLED,
-                vibrationEnabled
-            )
+            .putBoolean(KEY_SOUND_ENABLED, soundEnabled)
+            .putBoolean(KEY_MUSIC_ENABLED, musicEnabled)
+            .putBoolean(KEY_VIBRATION_ENABLED, vibrationEnabled)
             .apply()
     }
-
-    private fun gameEngineStateOrNull() =
-        try {
-            gameEngine.getState()
-        } catch (_: Exception) {
-            null
-        }
 
     private enum class Screen {
         LOADING,

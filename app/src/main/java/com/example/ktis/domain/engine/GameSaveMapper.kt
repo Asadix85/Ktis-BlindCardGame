@@ -39,6 +39,7 @@ object GameSaveMapper {
                         id = player.id,
                         name = player.name,
                         seat = player.seat,
+                        isAI = player.isAI,
 
                         drawPile =
                             player.drawPile.map {
@@ -116,6 +117,7 @@ object GameSaveMapper {
                     id = savedPlayer.id,
                     name = savedPlayer.name,
                     seat = savedPlayer.seat,
+                    isAI = savedPlayer.isAI,
 
                     drawPile =
                         savedPlayer.drawPile

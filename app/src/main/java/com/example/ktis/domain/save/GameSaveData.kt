@@ -17,6 +17,7 @@ data class PlayerSaveData(
     val id: Int,
     val name: String,
     val seat: Int,
+    val isAI: Boolean = false,
     val drawPile: List<CardSaveData>,
     val collectedCards: List<CardSaveData>
 )
